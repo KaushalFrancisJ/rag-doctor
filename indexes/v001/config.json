@@ -1,0 +1,11 @@
+{
+  "version": "v001",
+  "created_at": "2026-08-23T19:20:25.555256+00:00",
+  "chunk_size": 500,
+  "overlap": 100,
+  "embedding_model": "all-MiniLM-L6-v2",
+  "dimension": 384,
+  "metric": "inner_product_normalized_cosine",
+  "total_chunks": 294,
+  "total_documents": 13
+}
