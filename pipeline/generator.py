@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 
 RAG_SYSTEM_PROMPT = """You are a precise technical documentation assistant.
 Answer the user's question based strictly on the provided context retrieved from the official FastAPI documentation.
