@@ -132,15 +132,37 @@ class Judge:
         """
         prompt = self.build_eval_prompt(query, retrieved_chunks, answer, expected_answer)
 
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=[
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=self.temperature,
-            response_format={"type": "json_object"},
-        )
+        import time
+        max_retries = 6
+        response = None
+        for attempt in range(max_retries):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": self.system_prompt},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=self.temperature,
+                    response_format={"type": "json_object"},
+                )
+                break
+            except Exception as e:
+                err_str = str(e).lower()
+                if ("rate_limit" in err_str or "429" in err_str or "retry" in err_str) and attempt < max_retries - 1:
+                    wait_sec = 4.0 * (attempt + 1)
+                    m_min = re.search(r"try again in (\d+)m([\d\.]+)s", str(e), re.I)
+                    m_sec = re.search(r"try again in ([\d\.]+)s", str(e), re.I)
+                    m_ms = re.search(r"try again in ([\d\.]+)ms", str(e), re.I)
+                    if m_min:
+                        wait_sec = int(m_min.group(1)) * 60 + float(m_min.group(2)) + 1.0
+                    elif m_sec:
+                        wait_sec = float(m_sec.group(1)) + 1.0
+                    elif m_ms:
+                        wait_sec = float(m_ms.group(1)) / 1000.0 + 1.0
+                    time.sleep(wait_sec)
+                else:
+                    raise
 
         content = response.choices[0].message.content or "{}"
         parsed = self._parse_judge_response(content)
@@ -256,6 +278,9 @@ class Judge:
             if not passed:
                 failing_queries.append(query_result)
 
+            import time
+            time.sleep(0.5)
+
         count = len(results)
         avg_faithfulness = round(total_faithfulness / count, 2) if count else 0.0
         avg_relevancy = round(total_relevancy / count, 2) if count else 0.0
@@ -325,6 +350,8 @@ def main():
     parser.add_argument("--output", default=None, help="Path to save evaluation report JSON")
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD, help="Degradation score threshold (1-5)")
     parser.add_argument("--top-k", type=int, default=3, help="Number of chunks to retrieve")
+    parser.add_argument("--generator-model", default=None, help="Groq model for generator (default: from env or DEFAULT_GROQ_MODEL)")
+    parser.add_argument("--judge-model", default=None, help="Groq model for judge (default: from env or DEFAULT_JUDGE_MODEL)")
     args = parser.parse_args()
 
     print(f"=== Evaluating RAG Index: {args.index} ===")
@@ -334,6 +361,8 @@ def main():
         threshold=args.threshold,
         output_path=args.output,
         top_k=args.top_k,
+        generator_model=args.generator_model,
+        judge_model=args.judge_model,
     )
 
     summary = report["summary"]

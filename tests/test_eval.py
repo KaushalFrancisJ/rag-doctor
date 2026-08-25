@@ -180,3 +180,26 @@ def test_judge_evaluate_rag_mocked(tmp_path: Path):
     assert report["failing_queries"][0]["id"] == "q2"
 
     assert output_report.exists()
+
+
+def test_v002_sick_index_isolation():
+    v001_path = Path("indexes/v001")
+    v002_sick_path = Path("indexes/v002_sick")
+
+    assert v001_path.exists(), "indexes/v001 must exist"
+    assert v002_sick_path.exists(), "indexes/v002_sick must exist"
+
+    with open(v001_path / "config.json") as f:
+        v001_cfg = json.load(f)
+
+    with open(v002_sick_path / "config.json") as f:
+        v002_cfg = json.load(f)
+
+    assert v001_cfg["version"] == "v001"
+    assert v001_cfg["chunk_size"] == 500
+    assert v001_cfg["overlap"] == 100
+
+    assert v002_cfg["version"] == "v002_sick"
+    assert v002_cfg["chunk_size"] == 70
+    assert v002_cfg["overlap"] == 0
+    assert v002_cfg["total_chunks"] > v001_cfg["total_chunks"]

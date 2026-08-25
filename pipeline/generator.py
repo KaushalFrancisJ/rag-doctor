@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 import os
+import re
+import time
 from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -79,15 +84,37 @@ class Generator:
         """
         prompt = self.build_context_prompt(query, retrieved_chunks)
 
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=[
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=self.temperature,
-            max_tokens=max_tokens,
-        )
+        import time
+        max_retries = 6
+        response = None
+        for attempt in range(max_retries):
+            try:
+                response = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": self.system_prompt},
+                        {"role": "user", "content": prompt},
+                    ],
+                    temperature=self.temperature,
+                    max_tokens=max_tokens,
+                )
+                break
+            except Exception as e:
+                err_str = str(e).lower()
+                if ("rate_limit" in err_str or "429" in err_str or "retry" in err_str) and attempt < max_retries - 1:
+                    wait_sec = 4.0 * (attempt + 1)
+                    m_min = re.search(r"try again in (\d+)m([\d\.]+)s", str(e), re.I)
+                    m_sec = re.search(r"try again in ([\d\.]+)s", str(e), re.I)
+                    m_ms = re.search(r"try again in ([\d\.]+)ms", str(e), re.I)
+                    if m_min:
+                        wait_sec = int(m_min.group(1)) * 60 + float(m_min.group(2)) + 1.0
+                    elif m_sec:
+                        wait_sec = float(m_sec.group(1)) + 1.0
+                    elif m_ms:
+                        wait_sec = float(m_ms.group(1)) / 1000.0 + 1.0
+                    time.sleep(wait_sec)
+                else:
+                    raise
 
         answer_text = response.choices[0].message.content
 
