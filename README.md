@@ -14,18 +14,20 @@ rag-doctor/
 │   ├── active/               # Current production documents (FastAPI docs subset)
 │   └── candidate/            # Working copy used for candidate experiments
 ├── indexes/
-│   └── v001/                 # Initial production FAISS index & metadata
-│       ├── index.faiss       # FAISS vector index binary
-│       ├── chunks.json       # Document chunks with position metadata
-│       └── config.json       # Config (chunk_size, overlap, embedding_model)
+│   ├── v001/                 # Baseline production index (chunk_size: 500, overlap: 100)
+│   └── v002_sick/            # Deliberately degraded index (chunk_size: 70, overlap: 0)
+├── eval/
+│   ├── eval_set.json         # 20 held-out Q&A pairs covering the FastAPI corpus
+│   ├── judge.py              # LLM-as-judge evaluator (Faithfulness & Answer Relevancy)
+│   ├── baseline_results.json # Baseline evaluation report (v001: 4.58 / 5.0)
+│   └── sick_results.json     # Degraded evaluation report (v002_sick: 3.58 / 5.0)
 ├── pipeline/
 │   ├── __init__.py           # Unified exports and RAGPipeline wrapper
 │   ├── chunker.py            # Parameterized chunking (chunk_size, overlap)
 │   ├── embedder.py           # Sentence Transformers embedding module
 │   ├── index.py              # FAISS wrapper with versioning & persistence
 │   ├── retriever.py          # Top-k similarity retrieval
-│   └── generator.py          # Groq LLM answer generation
-├── eval/                     # Evaluation harness & held-out eval set
+│   └── generator.py          # Groq LLM answer generation with retry backoff
 ├── agent/                    # TrueForge agent orchestrator & subagents
 ├── sandbox_scripts/          # Sandbox remediation scripts
 ├── scripts/
@@ -33,7 +35,8 @@ rag-doctor/
 │   ├── query.py              # Interactive / CLI query tool
 │   └── smoke_test.py         # End-to-end pipeline smoke test
 ├── tests/
-│   └── test_pipeline.py      # Unit & integration tests
+│   ├── test_pipeline.py      # Pipeline unit & integration tests
+│   └── test_eval.py          # Eval harness & index isolation tests
 ├── requirements.txt
 ├── .env.example
 ├── AGENTS.md
@@ -62,25 +65,59 @@ Create `.env` from `.env.example`:
 cp .env.example .env
 ```
 
-Set your `GROQ_API_KEY`:
+Configure your `GROQ_API_KEY`:
 
 ```bash
 export GROQ_API_KEY="your_groq_api_key"
 ```
 
-### 3. Build Initial Index (`v001`)
+---
+
+## Usage
+
+### 1. Build an Index
 
 ```bash
-python scripts/build_index.py --corpus-dir corpus/active --output-dir indexes/v001 --chunk-size 500 --overlap 100
+# Build baseline index (v001)
+python scripts/build_index.py --corpus-dir corpus/active --output-dir indexes/v001 --chunk-size 500 --overlap 100 --version v001
+
+# Build a sick / degraded index variant for testing (v002_sick)
+python scripts/build_index.py --corpus-dir corpus/active --output-dir indexes/v002_sick --chunk-size 70 --overlap 0 --version v002_sick
 ```
 
-### 4. Run Smoke Test
+### 2. Run Evaluation (LLM-as-a-Judge)
+
+The evaluation harness evaluates answers against 20 held-out Q&A pairs on two dimensions (1–5 integer scale):
+- **Faithfulness (1–5)**: Checks if claims are grounded in retrieved context chunks without hallucination.
+- **Answer Relevancy (1–5)**: Checks if the response directly and completely answers the question.
 
 ```bash
-python scripts/smoke_test.py
+# Evaluate baseline index
+python eval/judge.py --index indexes/v001 --output eval/baseline_results.json
+
+# Evaluate sick index
+python eval/judge.py --index indexes/v002_sick --output eval/sick_results.json
 ```
 
-### 5. Run Tests
+### 3. Compare Healthy vs Sick Index
+
+| Metric | `v001` (Healthy Baseline) | `v002_sick` (Degraded) |
+|---|---|---|
+| **Chunk Size / Overlap** | 500 chars / 100 chars | 70 chars / 0 chars |
+| **Total Chunks** | 294 | 1666 |
+| **Avg Faithfulness** | **4.85 / 5.0** | **4.75 / 5.0** |
+| **Avg Answer Relevancy** | **4.30 / 5.0** | **2.40 / 5.0** (severe drop) |
+| **Avg Overall Score** | **4.58 / 5.0** | **3.58 / 5.0** |
+| **Passing / Failing Queries** | 20 passed / 0 failed | 7 passed / 13 failed |
+| **Degraded Status** | `HEALTHY` | `DEGRADED` |
+
+### 4. Interactive Query Tool
+
+```bash
+python scripts/query.py --index indexes/v001 --query "How do background tasks work in FastAPI?"
+```
+
+### 5. Run Test Suite
 
 ```bash
 pytest
