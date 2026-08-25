@@ -1,0 +1,142 @@
+[
+  {
+    "id": "eval_001",
+    "topic": "background_tasks",
+    "source_doc": "tutorial/background-tasks.md",
+    "question": "How do you schedule a background task in FastAPI, and when does it execute relative to the HTTP response?",
+    "expected_answer": "You import BackgroundTasks and declare it as a parameter in your path operation function. Inside the function, you call background_tasks.add_task(func, *args, **kwargs) passing your task function and arguments. FastAPI executes the background task after sending the HTTP response back to the client."
+  },
+  {
+    "id": "eval_002",
+    "topic": "background_tasks",
+    "source_doc": "tutorial/background-tasks.md",
+    "question": "Can background tasks in FastAPI access dependencies or be injected through sub-dependencies?",
+    "expected_answer": "Yes, BackgroundTasks can be declared in path operation functions or inside dependency functions (using Depends). When declared in a dependency, background tasks added to the instance will still be executed after the response is sent."
+  },
+  {
+    "id": "eval_003",
+    "topic": "middleware",
+    "source_doc": "tutorial/middleware.md",
+    "question": "How do you create custom HTTP middleware in FastAPI to measure request execution time and attach it as a header?",
+    "expected_answer": "Use the @app.middleware('http') decorator on an async function that takes request: Request and call_next. Record the start time using time.time(), await the response with call_next(request), compute process_time = time.time() - start_time, set a custom header like response.headers['X-Process-Time'] = str(process_time), and return the response."
+  },
+  {
+    "id": "eval_004",
+    "topic": "middleware",
+    "source_doc": "tutorial/middleware.md",
+    "question": "What parameters does an @app.middleware('http') function receive, and what type of object must it return?",
+    "expected_answer": "An HTTP middleware function receives two parameters: 'request' (the incoming Request object) and 'call_next' (a function that passes the request to the next handler or path operation). It must return a Response object."
+  },
+  {
+    "id": "eval_005",
+    "topic": "dependencies",
+    "source_doc": "tutorial/dependencies/index.md",
+    "question": "How does FastAPI handle dependency sharing and caching when multiple sub-dependencies depend on the same parent dependency?",
+    "expected_answer": "By default, FastAPI caches the result of a dependency call for the duration of a single request. If multiple sub-dependencies or route handlers depend on the same dependency in a request, FastAPI runs it only once and reuses the return value, unless use_cache=False is explicitly specified in Depends."
+  },
+  {
+    "id": "eval_006",
+    "topic": "dependencies",
+    "source_doc": "tutorial/dependencies/index.md",
+    "question": "How do you declare a dependency in a FastAPI path operation function?",
+    "expected_answer": "You declare a function parameter with a default value of Depends(dependency_callable), where dependency_callable is a function or class that returns the desired value or resource."
+  },
+  {
+    "id": "eval_007",
+    "topic": "bigger_applications",
+    "source_doc": "tutorial/bigger-applications.md",
+    "question": "How can you group related API routes into separate files and include them in a main FastAPI app?",
+    "expected_answer": "In separate files, create an APIRouter instance and decorate endpoints with @router.get(...), @router.post(...), etc. In the main application file, import the APIRouter instance and include it using app.include_router(router), optionally configuring common prefix, tags, dependencies, or responses."
+  },
+  {
+    "id": "eval_008",
+    "topic": "bigger_applications",
+    "source_doc": "tutorial/bigger-applications.md",
+    "question": "What is the purpose of setting prefix and tags when including an APIRouter in FastAPI?",
+    "expected_answer": "Setting 'prefix' automatically prepends a URL path segment (such as /users or /items) to all routes defined in that router without repeating it on every endpoint. Setting 'tags' groups and categorizes all routes from that router under a labeled section in the interactive OpenAPI documentation (Swagger UI and ReDoc)."
+  },
+  {
+    "id": "eval_009",
+    "topic": "request_body",
+    "source_doc": "tutorial/body.md",
+    "question": "How do you declare a request body with optional and required fields in FastAPI?",
+    "expected_answer": "Define a Pydantic model inheriting from BaseModel. Required fields are declared with standard type annotations (e.g., name: str), while optional fields are given a default value of None or declared as Optional/Union (e.g., description: str | None = None). Then declare the model as a parameter in your path operation function."
+  },
+  {
+    "id": "eval_010",
+    "topic": "request_body",
+    "source_doc": "tutorial/body.md",
+    "question": "How does FastAPI differentiate between path parameters, query parameters, and request body parameters in a function signature?",
+    "expected_answer": "FastAPI checks the path URL template first: if a parameter name is in the path template, it is a path parameter. If a parameter is declared with a singular/scalar type (like int, str, bool) and not in the path, it is treated as a query parameter. If a parameter is declared as a Pydantic model, it is parsed from the JSON request body."
+  },
+  {
+    "id": "eval_011",
+    "topic": "async_concurrency",
+    "source_doc": "async.md",
+    "question": "When should you define a path operation function with normal def instead of async def in FastAPI?",
+    "expected_answer": "You should use normal def when using third-party libraries or performing operations that make blocking I/O calls (such as traditional database drivers or disk I/O) that do not support await. FastAPI automatically runs normal def functions in an external threadpool so they do not block the main event loop."
+  },
+  {
+    "id": "eval_012",
+    "topic": "async_concurrency",
+    "source_doc": "async.md",
+    "question": "How does FastAPI execute normal def path operation functions without blocking the main event loop?",
+    "expected_answer": "FastAPI runs normal def path operation functions in a separate threadpool (worker threads via Starlette/AnyIO) instead of the main async event loop, ensuring non-blocking execution while allowing the event loop to concurrently handle other incoming requests."
+  },
+  {
+    "id": "eval_013",
+    "topic": "security",
+    "source_doc": "tutorial/security/first-steps.md",
+    "question": "What role does OAuth2PasswordBearer play in FastAPI authentication, and what is tokenUrl used for?",
+    "expected_answer": "OAuth2PasswordBearer is a security scheme class that extracts the bearer token from the HTTP Authorization header. The tokenUrl parameter specifies the URL endpoint where the client must submit credentials (username and password) to get a token, and it is used by Swagger UI to enable the interactive authorization modal."
+  },
+  {
+    "id": "eval_014",
+    "topic": "security_jwt",
+    "source_doc": "tutorial/security/oauth2-jwt.md",
+    "question": "What algorithm and secret key are used to sign JWT tokens in FastAPI, and what does the token payload typically include?",
+    "expected_answer": "JWT tokens are signed using a symmetric hashing algorithm like HS256 (HMAC-SHA256) and a secret key known only to the backend. The payload dictionary typically includes a 'sub' claim representing the user identity (such as username) and an 'exp' expiration timestamp."
+  },
+  {
+    "id": "eval_015",
+    "topic": "security_passwords",
+    "source_doc": "tutorial/security/oauth2-jwt.md",
+    "question": "How do you hash and verify user passwords securely in FastAPI using PassLib?",
+    "expected_answer": "Instantiate CryptContext(schemes=['bcrypt'], deprecated='auto') from passlib.context. Call pwd_context.hash(plain_password) to generate a secure password hash, and call pwd_context.verify(plain_password, hashed_password) during authentication to verify if a submitted password matches the stored hash."
+  },
+  {
+    "id": "eval_016",
+    "topic": "security_oauth2",
+    "source_doc": "tutorial/security/simple-oauth2.md",
+    "question": "Why does OAuth2 in FastAPI require OAuth2PasswordRequestForm to use form data instead of JSON for login?",
+    "expected_answer": "The OAuth2 specification strictly requires credential requests to be sent as form data (application/x-www-form-urlencoded) with specific field names 'username' and 'password', rather than as a JSON body. OAuth2PasswordRequestForm parses this form data to maintain full compliance with the OAuth2 standard."
+  },
+  {
+    "id": "eval_017",
+    "topic": "security_user",
+    "source_doc": "tutorial/security/get-current-user.md",
+    "question": "How do you implement a get_current_user dependency that validates a token and raises an HTTP 401 error if authentication fails?",
+    "expected_answer": "Define a dependency function that takes the token via Depends(oauth2_scheme), decodes the JWT token with jwt.decode, and extracts the username from the payload. If the token is invalid, expired, or the user is not found, raise an HTTPException with status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate credentials', and headers={'WWW-Authenticate': 'Bearer'}."
+  },
+  {
+    "id": "eval_018",
+    "topic": "features_docs",
+    "source_doc": "features.md",
+    "question": "What are the two automatic interactive API documentation interfaces provided out of the box by FastAPI?",
+    "expected_answer": "FastAPI provides Swagger UI (available by default at /docs for interactive exploration and calling of endpoints) and ReDoc (available by default at /redoc for clean responsive documentation), both generated automatically from the OpenAPI schema."
+  },
+  {
+    "id": "eval_019",
+    "topic": "features_performance",
+    "source_doc": "features.md",
+    "question": "How does FastAPI achieve high performance comparable to NodeJS and Go?",
+    "expected_answer": "FastAPI is built directly on top of Starlette for high-performance asynchronous web routing and Pydantic for data parsing and validation, executed by ASGI servers like Uvicorn. This architecture provides raw performance on par with NodeJS and Go."
+  },
+  {
+    "id": "eval_020",
+    "topic": "api_reference",
+    "source_doc": "reference/fastapi.md",
+    "question": "What parameters of the FastAPI application class allow you to customize or disable the automatic OpenAPI docs URL routes?",
+    "expected_answer": "The FastAPI class provides 'docs_url' (to change or disable the Swagger UI route by setting it to None), 'redoc_url' (to change or disable the ReDoc route by setting it to None), and 'openapi_url' (to configure or disable the OpenAPI JSON schema endpoint)."
+  }
+]
