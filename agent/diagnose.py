@@ -4,7 +4,7 @@ import os
 import sys
 import re
 import time
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from groq import Groq
 from mcp import ClientSession
@@ -30,10 +30,10 @@ You MUST return a valid JSON object strictly matching this schema:
   "recommended_experiment": "<concise recommendation for how to fix the issue, e.g., 'change chunk size to 500 and overlap to 100'>"
 }"""
 
-async def run_diagnose_subagent(index_version: str) -> Dict[str, Any]:
+async def run_diagnose_subagent(index_version: Optional[str] = None) -> Dict[str, Any]:
     """
-    Connects to the RAG Doctor MCP server to gather pipeline context and failing queries,
-    then uses Groq to diagnose the problem.
+    Connects to the RAG Doctor MCP server to inspect the active RAG pipeline health,
+    gathers failing queries and configuration diffs, then diagnoses the root cause.
     """
     server_params = StdioServerParameters(
         command=os.environ.get("PYTHON_EXE", "python"),
@@ -44,33 +44,41 @@ async def run_diagnose_subagent(index_version: str) -> Dict[str, Any]:
     async with stdio_client(server_params) as (read, write):
         async with ClientSession(read, write) as session:
             await session.initialize()
-            
-            # 1. Get baseline config (v001) and current config (index_version)
+
+            # 1. Inspect RAG health to discover active and baseline index versions
+            health_params = {"index_version": index_version} if index_version else {}
+            health_result = await session.call_tool("inspect_rag_health", health_params)
+            health_data = json.loads(health_result.content[0].text)
+
+            active_ver = health_data.get("active_monitored_index")
+            baseline_ver = health_data.get("baseline_index", "v001")
+
+            print(f"Health Status: {health_data.get('status')}")
+            print(f"Active Index: {active_ver} (Score: {health_data.get('current_score')})")
+            print(f"Baseline Index: {baseline_ver} (Score: {health_data.get('baseline_score')})")
+
+            # 2. Get baseline and active configurations
             try:
-                v001_result = await session.call_tool("get_pipeline_config", {"index_version": "v001"})
-                text = v001_result.content[0].text
-                if text.startswith("Error:"):
-                    raise ValueError(text)
-                v001_config = json.loads(text)
+                b_res = await session.call_tool("get_pipeline_config", {"index_version": baseline_ver})
+                b_text = b_res.content[0].text
+                baseline_config = json.loads(b_text) if not b_text.startswith("Error:") else {"error": b_text}
             except Exception as e:
-                v001_config = {"error": str(e)}
+                baseline_config = {"error": str(e)}
 
             try:
-                current_result = await session.call_tool("get_pipeline_config", {"index_version": index_version})
-                text = current_result.content[0].text
-                if text.startswith("Error:"):
-                    raise ValueError(text)
-                current_config = json.loads(text)
+                a_res = await session.call_tool("get_pipeline_config", {"index_version": active_ver})
+                a_text = a_res.content[0].text
+                active_config = json.loads(a_text) if not a_text.startswith("Error:") else {"error": a_text}
             except Exception as e:
-                current_config = {"error": str(e)}
-            
-            # 2. Get failing queries
+                active_config = {"error": str(e)}
+
+            # 3. Get failing queries for active index
             try:
-                failed_result = await session.call_tool("get_failed_queries", {"index_version": index_version})
-                text = failed_result.content[0].text
-                if text.startswith("Error:"):
-                    raise ValueError(text)
-                failing_queries = json.loads(text)
+                failed_res = await session.call_tool("get_failed_queries", {"index_version": active_ver})
+                f_text = failed_res.content[0].text
+                if f_text.startswith("Error:"):
+                    raise ValueError(f_text)
+                failing_queries = json.loads(f_text)
             except Exception as e:
                 print(f"Error fetching failed queries: {e}")
                 return {"error": "Failed to fetch failing queries", "details": str(e)}
@@ -79,11 +87,11 @@ async def run_diagnose_subagent(index_version: str) -> Dict[str, Any]:
         print("No failing queries found. System is healthy!")
         return {"status": "healthy"}
 
-    # 3. Construct the prompt
+    # 4. Construct the prompt
     prompt = f"Pipeline Configurations:\n"
-    prompt += f"Baseline Config (v001): {json.dumps(v001_config, indent=2)}\n"
-    prompt += f"Current Sick Config ({index_version}): {json.dumps(current_config, indent=2)}\n\n"
-    prompt += f"Failing Queries Analysis:\n"
+    prompt += f"Baseline Config ({baseline_ver}): {json.dumps(baseline_config, indent=2)}\n"
+    prompt += f"Active Degraded Config ({active_ver}): {json.dumps(active_config, indent=2)}\n\n"
+    prompt += f"Failing Queries Analysis ({len(failing_queries)} failing):\n"
     
     for q in failing_queries:
         prompt += f"Query ID: {q.get('id')}\n"
@@ -100,7 +108,7 @@ async def run_diagnose_subagent(index_version: str) -> Dict[str, Any]:
         
     prompt += "\nBased on the configurations and the failing queries (especially note the chunk sizes, overlaps, and the fragmented content), diagnose the root cause and output the JSON response."
 
-    # 4. Make LLM call
+    # 5. Make LLM call
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
         raise ValueError("GROQ_API_KEY not set.")
@@ -154,11 +162,10 @@ if __name__ == "__main__":
     # Using python from virtualenv for MCP Server
     os.environ["PYTHON_EXE"] = sys.executable if hasattr(sys, "executable") else "python"
     
-    # Accept index version from CLI args if provided, else default to v002_sick
-    target_index = sys.argv[1] if len(sys.argv) > 1 else "v002_sick"
+    # Accept index version from CLI args if provided, else let MCP dynamically resolve active index
+    target_index = sys.argv[1] if len(sys.argv) > 1 else None
     
     # Run the Diagnose Subagent
-    print(f"Running Diagnose subagent against index version: {target_index}")
     diagnosis_result = asyncio.run(run_diagnose_subagent(target_index))
     if diagnosis_result:
         print("\n=== Diagnose Subagent Result ===")
