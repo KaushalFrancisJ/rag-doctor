@@ -29,9 +29,12 @@ rag-doctor/
 │   ├── retriever.py          # Top-k similarity retrieval
 │   └── generator.py          # Groq LLM answer generation with retry backoff
 ├── agent/                    # TrueForge agent orchestrator & subagents
+│   └── diagnose.py           # Diagnose subagent (MCP client + Groq reasoning)
+├── mcp_server.py             # Local MCP server (stdio & SSE transport)
 ├── sandbox_scripts/          # Sandbox remediation scripts
 ├── scripts/
 │   ├── build_index.py        # CLI script to build and version indices
+│   ├── prototype_diagnosis.py# Prototype LLM diagnosis reasoning
 │   ├── query.py              # Interactive / CLI query tool
 │   └── smoke_test.py         # End-to-end pipeline smoke test
 ├── tests/
@@ -112,14 +115,51 @@ python eval/judge.py --index indexes/v002_sick --output eval/sick_results.json
 | **Passing / Failing Queries** | 20 passed / 0 failed | 18 passed / 2 failed | - |
 | **Degraded Status** | `HEALTHY` | `DEGRADED` (>15% drop) | - |
 
-### 4. Interactive Query Tool
+### 4. Start the MCP Server
+
+RAG Doctor exposes a local Model Context Protocol (MCP) server providing controlled inspection tools:
+- `get_evaluation_results`: Retrieve overall score, faithfulness, and relevancy metrics.
+- `get_failed_queries`: Retrieve specific failing queries with generated vs expected answers and retrieved chunks.
+- `inspect_retrieval`: Ad-hoc similarity retrieval for debugging chunk relevance.
+- `get_pipeline_config`: Fetch chunking/embedding configuration of any index version.
+
+```bash
+# Run over stdio (for local agent orchestrators / subprocesses)
+python mcp_server.py --transport stdio
+
+# Run over SSE (for TrueForge / web UI integrations)
+python mcp_server.py --transport sse --host 0.0.0.0 --port 8000
+# SSE endpoint: http://127.0.0.1:8000/sse
+```
+
+### 5. Run the Diagnose Subagent
+
+The Diagnose subagent queries the MCP server for pipeline state and failing queries, then prompts an LLM to identify the pathology category, evidence, confidence, and recommended experiment:
+
+```bash
+# Run Diagnose subagent against the sick index (v002_sick)
+python agent/diagnose.py v002_sick
+```
+
+Example Diagnosis output:
+```json
+{
+  "suspected_cause": "chunking problem",
+  "evidence": "The sick config uses a chunk size of 70 with no overlap, resulting in highly fragmented excerpts that cut off sentences and omit key details...",
+  "confidence": 0.93,
+  "recommended_experiment": "increase chunk size to 300-500 and add overlap of 50-100 to preserve full statements"
+}
+```
+
+### 6. Interactive Query Tool
 
 ```bash
 python scripts/query.py --index indexes/v001 --query "How do background tasks work in FastAPI?"
 ```
 
-### 5. Run Test Suite
+### 7. Run Test Suite
 
 ```bash
 pytest
 ```
+
