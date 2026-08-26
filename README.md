@@ -14,13 +14,14 @@ rag-doctor/
 │   ├── active/               # Current production documents (FastAPI docs subset)
 │   └── candidate/            # Working copy used for candidate experiments
 ├── indexes/
+│   ├── active.json           # Active index pointer (tracks current active & baseline)
 │   ├── v001/                 # Baseline production index (chunk_size: 500, overlap: 100)
 │   └── v002_sick/            # Deliberately degraded index (chunk_size: 70, overlap: 0)
 ├── eval/
 │   ├── eval_set.json         # 20 held-out Q&A pairs covering the FastAPI corpus
 │   ├── judge.py              # LLM-as-judge evaluator (Faithfulness & Answer Relevancy)
 │   ├── baseline_results.json # Baseline evaluation report (v001: 4.58 / 5.0)
-│   └── sick_results.json     # Degraded evaluation report (v002_sick: 3.58 / 5.0)
+│   └── sick_results.json     # Degraded evaluation report (v002_sick: 3.83 / 5.0)
 ├── pipeline/
 │   ├── __init__.py           # Unified exports and RAGPipeline wrapper
 │   ├── chunker.py            # Parameterized chunking (chunk_size, overlap)
@@ -50,7 +51,7 @@ rag-doctor/
 
 ## Setup & Quickstart
 
-### 1. Environment
+### 1. Environment Setup
 
 Using Python 3.12:
 
@@ -68,15 +69,62 @@ Create `.env` from `.env.example`:
 cp .env.example .env
 ```
 
-Configure your `GROQ_API_KEY`:
+Configure your Groq API key in `.env`:
 
-```bash
-export GROQ_API_KEY="your_groq_api_key"
+```env
+GROQ_API_KEY=gsk_your_actual_groq_api_key_here
+GROQ_MODEL=openai/gpt-oss-120b
 ```
+
+### 3. Active Index State (`indexes/active.json`)
+
+RAG Doctor uses a dynamic state pointer file (`indexes/active.json`) to track which index is currently monitored and which is the known-good baseline:
+
+```json
+{
+  "active_version": "v002_sick",
+  "baseline_version": "v001"
+}
+```
+
+- **For the Demo (Degraded State)**: Set `"active_version": "v002_sick"` so the Doctor detects degradation and diagnoses the issue.
+- **For Healthy Baseline**: Set `"active_version": "v001"`.
 
 ---
 
-## Usage
+## TrueForge MCP Integration
+
+RAG Doctor exposes a custom Model Context Protocol (MCP) server that TrueForge connects to over **SSE (Server-Sent Events)** or **stdio**.
+
+### 1. Start the MCP Server
+
+Start the server in SSE mode on port 8000:
+
+```bash
+.venv/bin/python mcp_server.py --transport sse --port 8000
+```
+
+### 2. Connect TrueForge to MCP
+
+In the TrueForge Agent / MCP configuration:
+- **Transport**: SSE / HTTP URL
+- **URL**: `http://127.0.0.1:8000/sse` *(or `http://localhost:8000/sse`)*
+
+*(If TrueForge is running in the cloud, expose port 8000 via a tunnel like `ngrok http 8000` and use `https://your-subdomain.ngrok-free.app/sse`).*
+
+### 3. Exposed MCP Tools
+
+| MCP Tool | Description |
+|---|---|
+| `inspect_rag_health()` | Returns health status (`DEGRADED`/`HEALTHY`), active vs baseline score, failing query counts, and available indices. |
+| `get_pipeline_config(index_version)` | Fetches chunk size, overlap, and embedding settings (defaults to active index). |
+| `get_failed_queries(index_version)` | Returns failing queries with expected vs generated answers and retrieved chunks (defaults to active index). |
+| `get_evaluation_results(index_version)`| Returns summary metrics (faithfulness, relevancy, overall score). |
+| `inspect_retrieval(query, index_version)` | Ad-hoc similarity retrieval for debugging chunk relevance. |
+
+---
+
+## Usage & Development Commands
 
 ### 1. Build an Index
 
@@ -115,51 +163,35 @@ python eval/judge.py --index indexes/v002_sick --output eval/sick_results.json
 | **Passing / Failing Queries** | 20 passed / 0 failed | 18 passed / 2 failed | - |
 | **Degraded Status** | `HEALTHY` | `DEGRADED` (>15% drop) | - |
 
-### 4. Start the MCP Server
-
-RAG Doctor exposes a local Model Context Protocol (MCP) server providing controlled inspection tools:
-- `get_evaluation_results`: Retrieve overall score, faithfulness, and relevancy metrics.
-- `get_failed_queries`: Retrieve specific failing queries with generated vs expected answers and retrieved chunks.
-- `inspect_retrieval`: Ad-hoc similarity retrieval for debugging chunk relevance.
-- `get_pipeline_config`: Fetch chunking/embedding configuration of any index version.
-
-```bash
-# Run over stdio (for local agent orchestrators / subprocesses)
-python mcp_server.py --transport stdio
-
-# Run over SSE (for TrueForge / web UI integrations)
-python mcp_server.py --transport sse --host 0.0.0.0 --port 8000
-# SSE endpoint: http://127.0.0.1:8000/sse
-```
-
-### 5. Run the Diagnose Subagent
+### 4. Run the Diagnose Subagent Locally
 
 The Diagnose subagent queries the MCP server for pipeline state and failing queries, then prompts an LLM to identify the pathology category, evidence, confidence, and recommended experiment:
 
 ```bash
-# Run Diagnose subagent against the sick index (v002_sick)
-python agent/diagnose.py v002_sick
+# Run Diagnose subagent dynamically against the active index
+python agent/diagnose.py
 ```
 
 Example Diagnosis output:
 ```json
 {
   "suspected_cause": "chunking problem",
-  "evidence": "The sick config uses a chunk size of 70 with no overlap, resulting in highly fragmented excerpts that cut off sentences and omit key details...",
-  "confidence": 0.93,
-  "recommended_experiment": "increase chunk size to 300-500 and add overlap of 50-100 to preserve full statements"
+  "evidence": "The degraded config uses a chunk size of 70 with no overlap, resulting in extremely fragmented excerpts that omit critical details...",
+  "confidence": 0.94,
+  "recommended_experiment": "increase chunk size to 400-500 and set overlap to 50-100 to capture whole statements and preserve context"
 }
 ```
 
-### 6. Interactive Query Tool
+### 5. Interactive Query Tool
 
 ```bash
 python scripts/query.py --index indexes/v001 --query "How do background tasks work in FastAPI?"
 ```
 
-### 7. Run Test Suite
+### 6. Run Test Suite
 
 ```bash
 pytest
 ```
+
 
