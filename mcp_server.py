@@ -93,6 +93,24 @@ def get_pipeline_config(index_version: str) -> str:
     except Exception as e:
         return f"Error reading config: {e}"
 
+import argparse
+
 if __name__ == "__main__":
-    # Start the stdio MCP server
-    mcp.run(transport='stdio')
+    parser = argparse.ArgumentParser(description="RAG Doctor MCP Server")
+    parser.add_argument(
+        "--transport",
+        choices=["stdio", "sse", "streamable-http"],
+        default="stdio",
+        help="Transport type (default: stdio)",
+    )
+    parser.add_argument("--host", default="0.0.0.0", help="Host for SSE/HTTP transport (default: 0.0.0.0)")
+    parser.add_argument("--port", type=int, default=8000, help="Port for SSE/HTTP transport (default: 8000)")
+    args = parser.parse_args()
+
+    if args.transport == "stdio":
+        mcp.run(transport="stdio")
+    elif args.transport == "sse":
+        mcp.run(transport="sse", host=args.host, port=args.port)
+    elif args.transport == "streamable-http":
+        mcp.run(transport="streamable-http", host=args.host, port=args.port)
+
