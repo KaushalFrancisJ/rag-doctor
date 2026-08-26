@@ -48,27 +48,36 @@ async def run_diagnose_subagent(index_version: str) -> Dict[str, Any]:
             # 1. Get baseline config (v001) and current config (index_version)
             try:
                 v001_result = await session.call_tool("get_pipeline_config", {"index_version": "v001"})
-                v001_config = json.loads(v001_result.content[0].text)
+                text = v001_result.content[0].text
+                if text.startswith("Error:"):
+                    raise ValueError(text)
+                v001_config = json.loads(text)
             except Exception as e:
                 v001_config = {"error": str(e)}
 
             try:
                 current_result = await session.call_tool("get_pipeline_config", {"index_version": index_version})
-                current_config = json.loads(current_result.content[0].text)
+                text = current_result.content[0].text
+                if text.startswith("Error:"):
+                    raise ValueError(text)
+                current_config = json.loads(text)
             except Exception as e:
                 current_config = {"error": str(e)}
             
             # 2. Get failing queries
             try:
                 failed_result = await session.call_tool("get_failed_queries", {"index_version": index_version})
-                failing_queries = json.loads(failed_result.content[0].text)
+                text = failed_result.content[0].text
+                if text.startswith("Error:"):
+                    raise ValueError(text)
+                failing_queries = json.loads(text)
             except Exception as e:
-                failing_queries = []
                 print(f"Error fetching failed queries: {e}")
+                return {"error": "Failed to fetch failing queries", "details": str(e)}
 
     if not failing_queries:
         print("No failing queries found. System is healthy!")
-        return {}
+        return {"status": "healthy"}
 
     # 3. Construct the prompt
     prompt = f"Pipeline Configurations:\n"
@@ -145,7 +154,12 @@ if __name__ == "__main__":
     # Using python from virtualenv for MCP Server
     os.environ["PYTHON_EXE"] = sys.executable if hasattr(sys, "executable") else "python"
     
-    # Run the Diagnose Subagent against v002_sick
-    diagnosis_result = asyncio.run(run_diagnose_subagent("v002_sick"))
-    print("\n=== Diagnose Subagent Result ===")
-    print(json.dumps(diagnosis_result, indent=2))
+    # Accept index version from CLI args if provided, else default to v002_sick
+    target_index = sys.argv[1] if len(sys.argv) > 1 else "v002_sick"
+    
+    # Run the Diagnose Subagent
+    print(f"Running Diagnose subagent against index version: {target_index}")
+    diagnosis_result = asyncio.run(run_diagnose_subagent(target_index))
+    if diagnosis_result:
+        print("\n=== Diagnose Subagent Result ===")
+        print(json.dumps(diagnosis_result, indent=2))
