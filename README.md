@@ -99,17 +99,18 @@ python eval/judge.py --index indexes/v001 --output eval/baseline_results.json
 python eval/judge.py --index indexes/v002_sick --output eval/sick_results.json
 ```
 
-### 3. Compare Healthy vs Sick Index
+### 3. Compare Healthy vs Sick Index (Controlled: `openai/gpt-oss-120b`)
 
-| Metric | `v001` (Healthy Baseline) | `v002_sick` (Degraded) |
-|---|---|---|
-| **Chunk Size / Overlap** | 500 chars / 100 chars | 70 chars / 0 chars |
-| **Total Chunks** | 294 | 1666 |
-| **Avg Faithfulness** | **4.85 / 5.0** | **4.75 / 5.0** |
-| **Avg Answer Relevancy** | **4.30 / 5.0** | **2.40 / 5.0** (severe drop) |
-| **Avg Overall Score** | **4.58 / 5.0** | **3.58 / 5.0** |
-| **Passing / Failing Queries** | 20 passed / 0 failed | 7 passed / 13 failed |
-| **Degraded Status** | `HEALTHY` | `DEGRADED` |
+| Metric | `v001` (Healthy Baseline) | `v002_sick` (Degraded) | Delta |
+|---|---|---|---|
+| **Model** | `openai/gpt-oss-120b` | `openai/gpt-oss-120b` | *Controlled* |
+| **Chunk Size / Overlap** | 500 chars / 100 chars | 70 chars / 0 chars | Pathology |
+| **Total Chunks** | 294 | 1666 | +1372 |
+| **Avg Faithfulness** | **4.85 / 5.0** | **4.55 / 5.0** | -0.30 |
+| **Avg Answer Relevancy** | **4.30 / 5.0** | **3.10 / 5.0** | **-1.20** |
+| **Avg Overall Score** | **4.58 / 5.0** | **3.83 / 5.0** | **-0.75 (-16.4%)** |
+| **Passing / Failing Queries** | 20 passed / 0 failed | 18 passed / 2 failed | - |
+| **Degraded Status** | `HEALTHY` | `DEGRADED` (>15% drop) | - |
 
 ### 4. Interactive Query Tool
 
