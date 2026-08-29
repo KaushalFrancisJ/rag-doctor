@@ -38,6 +38,52 @@ def load_env(env_path: Path):
                 os.environ[k] = v
 
 
+def load_models_from_catalog() -> list[dict]:
+    """Load model definitions from trueforge-models.yaml to centralize model configuration."""
+    catalog_path = PROJECT_ROOT / "trueforge-models.yaml"
+    if catalog_path.exists():
+        try:
+            import yaml
+            with open(catalog_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                for provider in data.get("providers", []):
+                    if provider.get("type") == "google-gemini":
+                        return provider.get("models", [])
+        except Exception:
+            pass
+
+    # Fallback model list
+    return [
+        {
+            "model_id": "gemini-2.5-flash",
+            "name": "gemini-2-5-flash",
+            "properties": {
+                "context_length": 1048576,
+                "max_output_tokens": 65536,
+                "reasoning_efforts": ["minimal", "low", "medium", "high"]
+            }
+        },
+        {
+            "model_id": "gemini-2.5-pro",
+            "name": "gemini-2-5-pro",
+            "properties": {
+                "context_length": 1048576,
+                "max_output_tokens": 65536,
+                "reasoning_efforts": ["low", "medium", "high"]
+            }
+        },
+        {
+            "model_id": "gemini-2.0-flash",
+            "name": "gemini-2-0-flash",
+            "properties": {
+                "context_length": 1048576,
+                "max_output_tokens": 65536,
+                "reasoning_efforts": ["none", "low", "medium", "high"]
+            }
+        }
+    ]
+
+
 def make_request(url: str, method: str = "GET", data: dict | None = None) -> tuple[int, dict]:
     """Perform HTTP request to TrueForge API."""
     headers = {"Content-Type": "application/json"}
@@ -59,8 +105,8 @@ def make_request(url: str, method: str = "GET", data: dict | None = None) -> tup
         return 0, {"error": str(e)}
 
 
-def wait_for_server(base_url: str, timeout_seconds: int = 15) -> bool:
-    """Check if TrueForge server is online."""
+def wait_for_server_readiness(base_url: str, timeout_seconds: int = 15) -> bool:
+    """Readiness probe to check if the TrueForge HTTP server has started before sending config."""
     health_url = f"{base_url}/healthz"
     print(f"Connecting to TrueForge at {base_url}...")
     start = time.time()
@@ -76,13 +122,14 @@ def wait_for_server(base_url: str, timeout_seconds: int = 15) -> bool:
     return False
 
 
-def configure_model_provider(base_url: str, gemini_api_key: str):
+def configure_model_provider(base_url: str, gemini_api_key: str) -> bool:
     """Configure native Google Gemini model provider."""
     print("\n[1/3] Configuring Google Gemini Model Provider...")
     if not gemini_api_key or gemini_api_key == "your_gemini_api_key_here":
-        print("⚠️  GEMINI_API_KEY is not set or placeholder. Please update .env.")
+        print("❌ GEMINI_API_KEY is not set or placeholder. Please update .env.")
         return False
 
+    models = load_models_from_catalog()
     url = f"{base_url}/api/v1/settings/model-providers"
     payload = {
         "manifest": {
@@ -91,35 +138,7 @@ def configure_model_provider(base_url: str, gemini_api_key: str):
             "auth": {
                 "api_key": gemini_api_key
             },
-            "models": [
-                {
-                    "model_id": "gemini-2.5-flash",
-                    "name": "gemini-2-5-flash",
-                    "properties": {
-                        "context_length": 1048576,
-                        "max_output_tokens": 65536,
-                        "reasoning_efforts": ["minimal", "low", "medium", "high"]
-                    }
-                },
-                {
-                    "model_id": "gemini-2.5-pro",
-                    "name": "gemini-2-5-pro",
-                    "properties": {
-                        "context_length": 1048576,
-                        "max_output_tokens": 65536,
-                        "reasoning_efforts": ["low", "medium", "high"]
-                    }
-                },
-                {
-                    "model_id": "gemini-2.0-flash",
-                    "name": "gemini-2-0-flash",
-                    "properties": {
-                        "context_length": 1048576,
-                        "max_output_tokens": 65536,
-                        "reasoning_efforts": ["none", "low", "medium", "high"]
-                    }
-                }
-            ]
+            "models": models
         }
     }
 
@@ -132,12 +151,12 @@ def configure_model_provider(base_url: str, gemini_api_key: str):
         return False
 
 
-def configure_sandbox_provider(base_url: str, daytona_api_key: str):
+def configure_sandbox_provider(base_url: str, daytona_api_key: str) -> bool:
     """Configure Daytona Sandbox provider."""
     print("\n[2/3] Configuring Daytona Sandbox Provider...")
     if not daytona_api_key or daytona_api_key == "your_daytona_api_key_here":
-        print("⚠️  DAYTONA_API_KEY is not set or placeholder. Please update .env.")
-        return False
+        print("⚠️  DAYTONA_API_KEY is not set or placeholder. Skipping Daytona configuration.")
+        return True
 
     url = f"{base_url}/api/v1/settings/sandbox-providers"
     payload = {
@@ -159,11 +178,11 @@ def configure_sandbox_provider(base_url: str, daytona_api_key: str):
         return True
     else:
         print(f"❌ Failed to configure Daytona provider ({status}): {resp}")
-        print("💡 Hint: Daytona requires a valid API key from https://app.daytona.io. Check DAYTONA_API_KEY in .env.")
+        print("💡 Hint: Daytona requires a valid API key with snapshot permissions. Check DAYTONA_API_KEY in .env.")
         return False
 
 
-def configure_mcp_server(base_url: str, mcp_url: str = "http://127.0.0.1:8000/sse"):
+def configure_mcp_server(base_url: str, mcp_url: str = "http://127.0.0.1:8000/sse") -> bool:
     """Register RAG Doctor MCP server."""
     print("\n[3/3] Registering RAG Doctor MCP Server...")
     url = f"{base_url}/api/v1/settings/mcp-servers"
@@ -186,20 +205,21 @@ def configure_mcp_server(base_url: str, mcp_url: str = "http://127.0.0.1:8000/ss
 
 
 def main():
+    # 1. Load .env before initializing CLI parser so environment variables populate defaults
+    env_path = PROJECT_ROOT / ".env"
+    load_env(env_path)
+
     parser = argparse.ArgumentParser(description="Configure TrueForge with Google Gemini and Daytona Sandbox.")
     parser.add_argument("--host", default=os.getenv("TRUEFORGE_HOST", "http://localhost:8790"), help="TrueForge base URL")
     parser.add_argument("--mcp-url", default=os.getenv("MCP_SERVER_URL", "http://127.0.0.1:8000/sse"), help="RAG Doctor MCP server SSE endpoint URL")
-    parser.add_argument("--wait-timeout", type=int, default=30, help="Seconds to wait for TrueForge server to become available")
+    parser.add_argument("--wait-timeout", type=int, default=30, help="Seconds to wait for TrueForge server readiness")
     args = parser.parse_args()
-
-    env_path = PROJECT_ROOT / ".env"
-    load_env(env_path)
 
     gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or os.getenv("GOOGLE_GENERATIVE_AI_API_KEY", "")
     daytona_key = os.getenv("DAYTONA_API_KEY", "")
     mcp_url = args.mcp_url
 
-    if not wait_for_server(args.host, timeout_seconds=args.wait_timeout):
+    if not wait_for_server_readiness(args.host, timeout_seconds=args.wait_timeout):
         print(f"\n⚠️  TrueForge is not running on {args.host}.")
         print("To start TrueForge, run in another terminal:")
         print("  npx @truefoundry/trueforge")
@@ -207,9 +227,22 @@ def main():
         print("  python scripts/setup_trueforge.py")
         sys.exit(1)
 
-    configure_model_provider(args.host, gemini_key)
-    configure_sandbox_provider(args.host, daytona_key)
-    configure_mcp_server(args.host, mcp_url)
+    results = []
+    # 1. Model Provider
+    results.append(("Google Gemini Model Provider", configure_model_provider(args.host, gemini_key)))
+
+    # 2. Sandbox Provider
+    if daytona_key and daytona_key != "your_daytona_api_key_here":
+        results.append(("Daytona Sandbox Provider", configure_sandbox_provider(args.host, daytona_key)))
+
+    # 3. MCP Server
+    results.append(("RAG Doctor MCP Server", configure_mcp_server(args.host, mcp_url)))
+
+    # Evaluate results
+    failures = [name for name, success in results if not success]
+    if failures:
+        print(f"\n❌ TrueForge setup completed with errors in: {', '.join(failures)}")
+        sys.exit(1)
 
     print("\n🎉 TrueForge configuration complete!")
 

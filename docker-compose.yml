@@ -13,7 +13,7 @@ services:
       - ./eval:/app/eval
       - ./corpus:/app/corpus
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     restart: unless-stopped
 
   # 2. TrueForge Agent Server (Agent loop, Daytona sandbox, Gemini model harness)
@@ -28,14 +28,11 @@ services:
     environment:
       - HOST=0.0.0.0
       - PORT=8790
-      - SQLITE_PATH=/app/data/db.sqlite
       - MODEL_CATALOG_PATH=/app/trueforge-models.yaml
       - SANDBOX_CATALOG_PATH=/app/trueforge-sandbox.yaml
       - MCP_CATALOG_PATH=/app/trueforge-mcp.yaml
-    volumes:
-      - trueforge-data:/app/data
     ports:
-      - "8790:8790"
+      - "127.0.0.1:8790:8790"
     depends_on:
       - mcp-server
     restart: unless-stopped
@@ -49,6 +46,7 @@ services:
     volumes:
       - ./scripts:/app/scripts
       - ./.env:/app/.env
+      - ./trueforge-models.yaml:/app/trueforge-models.yaml
     working_dir: /app
     command: [
       "python",
@@ -61,6 +59,3 @@ services:
       - trueforge
       - mcp-server
     restart: "no"
-
-volumes:
-  trueforge-data:

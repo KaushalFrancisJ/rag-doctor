@@ -53,3 +53,20 @@ def test_docker_compose_valid():
     assert "mcp-server" in compose_data["services"]
     assert "trueforge" in compose_data["services"]
     assert "init-config" in compose_data["services"]
+
+    # Ensure ports are bound to loopback 127.0.0.1 for security
+    mcp_ports = compose_data["services"]["mcp-server"].get("ports", [])
+    assert any("127.0.0.1:8000" in p for p in mcp_ports)
+
+    tf_ports = compose_data["services"]["trueforge"].get("ports", [])
+    assert any("127.0.0.1:8790" in p for p in tf_ports)
+
+
+def test_setup_script_model_loader():
+    from scripts.setup_trueforge import load_models_from_catalog
+    models = load_models_from_catalog()
+    assert len(models) >= 3
+    model_ids = [m["model_id"] for m in models]
+    assert "gemini-2.5-flash" in model_ids
+    assert "gemini-2.5-pro" in model_ids
+    assert "gemini-2.0-flash" in model_ids
