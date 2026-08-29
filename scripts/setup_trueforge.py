@@ -38,13 +38,23 @@ def load_env(env_path: Path):
                 os.environ[k] = v
 
 
-def load_models_from_catalog() -> list[dict]:
-    """Load model definitions from trueforge-models.yaml to centralize model configuration."""
-    catalog_path = PROJECT_ROOT / "trueforge-models.yaml"
-    if catalog_path.exists():
+def resolve_path(path_str: str | Path) -> Path:
+    """Resolve a path against PROJECT_ROOT if it's relative, or return absolute path."""
+    p = Path(path_str)
+    if not p.is_absolute():
+        p = (PROJECT_ROOT / p).resolve()
+    return p
+
+
+def load_models_from_catalog(catalog_path: str | Path | None = None) -> list[dict]:
+    """Load model definitions from configured catalog path (or trueforge-models.yaml) to centralize model configuration."""
+    raw_path = catalog_path or os.getenv("MODEL_CATALOG_PATH") or "trueforge-models.yaml"
+    resolved_path = resolve_path(raw_path)
+
+    if resolved_path.exists():
         try:
             import yaml
-            with open(catalog_path, "r", encoding="utf-8") as f:
+            with open(resolved_path, "r", encoding="utf-8") as f:
                 data = yaml.safe_load(f)
                 for provider in data.get("providers", []):
                     if provider.get("type") == "google-gemini":
@@ -122,14 +132,14 @@ def wait_for_server_readiness(base_url: str, timeout_seconds: int = 15) -> bool:
     return False
 
 
-def configure_model_provider(base_url: str, gemini_api_key: str) -> bool:
+def configure_model_provider(base_url: str, gemini_api_key: str, catalog_path: str | Path | None = None) -> bool:
     """Configure native Google Gemini model provider."""
     print("\n[1/3] Configuring Google Gemini Model Provider...")
     if not gemini_api_key or gemini_api_key == "your_gemini_api_key_here":
         print("❌ GEMINI_API_KEY is not set or placeholder. Please update .env.")
         return False
 
-    models = load_models_from_catalog()
+    models = load_models_from_catalog(catalog_path)
     url = f"{base_url}/api/v1/settings/model-providers"
     payload = {
         "manifest": {
@@ -212,6 +222,7 @@ def main():
     parser = argparse.ArgumentParser(description="Configure TrueForge with Google Gemini and Daytona Sandbox.")
     parser.add_argument("--host", default=os.getenv("TRUEFORGE_HOST", "http://localhost:8790"), help="TrueForge base URL")
     parser.add_argument("--mcp-url", default=os.getenv("MCP_SERVER_URL", "http://127.0.0.1:8000/sse"), help="RAG Doctor MCP server SSE endpoint URL")
+    parser.add_argument("--model-catalog", default=os.getenv("MODEL_CATALOG_PATH", "./trueforge-models.yaml"), help="Path to model catalog YAML")
     parser.add_argument("--wait-timeout", type=int, default=30, help="Seconds to wait for TrueForge server readiness")
     args = parser.parse_args()
 
@@ -229,7 +240,7 @@ def main():
 
     results = []
     # 1. Model Provider
-    results.append(("Google Gemini Model Provider", configure_model_provider(args.host, gemini_key)))
+    results.append(("Google Gemini Model Provider", configure_model_provider(args.host, gemini_key, catalog_path=args.model_catalog)))
 
     # 2. Sandbox Provider
     if daytona_key and daytona_key != "your_daytona_api_key_here":

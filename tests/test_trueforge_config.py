@@ -62,11 +62,41 @@ def test_docker_compose_valid():
     assert any("127.0.0.1:8790" in p for p in tf_ports)
 
 
-def test_setup_script_model_loader():
+def test_setup_script_model_loader(monkeypatch, tmp_path):
     from scripts.setup_trueforge import load_models_from_catalog
+
+    # 1. Default catalog loading
     models = load_models_from_catalog()
     assert len(models) >= 3
     model_ids = [m["model_id"] for m in models]
     assert "gemini-2.5-flash" in model_ids
     assert "gemini-2.5-pro" in model_ids
     assert "gemini-2.0-flash" in model_ids
+
+    # 2. Loading via explicit relative path
+    models_rel = load_models_from_catalog("./trueforge-models.yaml")
+    assert len(models_rel) == len(models)
+
+    # 3. Loading via MODEL_CATALOG_PATH environment variable
+    monkeypatch.setenv("MODEL_CATALOG_PATH", "./trueforge-models.yaml")
+    models_env = load_models_from_catalog()
+    assert len(models_env) == len(models)
+
+    # 4. Loading from custom catalog path
+    custom_catalog = tmp_path / "custom-models.yaml"
+    custom_catalog.write_text(
+        yaml.dump({
+            "providers": [
+                {
+                    "type": "google-gemini",
+                    "models": [
+                        {"model_id": "custom-gemini-model", "name": "custom-model"}
+                    ]
+                }
+            ]
+        }),
+        encoding="utf-8"
+    )
+    models_custom = load_models_from_catalog(str(custom_catalog))
+    assert len(models_custom) == 1
+    assert models_custom[0]["model_id"] == "custom-gemini-model"
