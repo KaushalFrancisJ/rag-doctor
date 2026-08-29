@@ -214,6 +214,23 @@ def configure_mcp_server(base_url: str, mcp_url: str = "http://127.0.0.1:8000/ss
         return False
 
 
+def format_fqn_model(model_spec: dict | str | None, default_provider: str = "google-gemini") -> str:
+    """Format model name into fully-qualified 'provider/model' required by TrueForge."""
+    if isinstance(model_spec, str):
+        raw_name = model_spec
+        provider = default_provider
+    elif isinstance(model_spec, dict):
+        raw_name = model_spec.get("name", "gemini-2-5-flash")
+        provider = model_spec.get("provider", default_provider)
+    else:
+        raw_name = "gemini-2-5-flash"
+        provider = default_provider
+
+    if "/" in raw_name:
+        return raw_name
+    return f"{provider}/{raw_name}"
+
+
 def configure_agents(base_url: str, config_path: str | Path | None = None) -> bool:
     """Register RAG Doctor orchestrator and diagnose subagent from trueforge.yaml."""
     print("\n[4/4] Registering RAG Doctor Orchestrator & Diagnose Subagent...")
@@ -231,11 +248,12 @@ def configure_agents(base_url: str, config_path: str | Path | None = None) -> bo
         agent_spec = data.get("agent")
         if agent_spec:
             agent_name = agent_spec.get("name", "rag-doctor")
+            model_fqn = format_fqn_model(agent_spec.get("model"))
             payload = {
                 "name": agent_name,
                 "manifest": {
                     "model": {
-                        "name": agent_spec.get("model", {}).get("name", "gemini-2-5-flash")
+                        "name": model_fqn
                     },
                     "instructions": agent_spec.get("instructions", "").strip(),
                     "mcp_servers": [
@@ -257,11 +275,12 @@ def configure_agents(base_url: str, config_path: str | Path | None = None) -> bo
             sub_name = sub.get("name")
             if not sub_name:
                 continue
+            model_fqn = format_fqn_model(sub.get("model"))
             payload = {
                 "name": f"rag-doctor-{sub_name}",
                 "manifest": {
                     "model": {
-                        "name": sub.get("model", {}).get("name", "gemini-2-5-flash")
+                        "name": model_fqn
                     },
                     "instructions": sub.get("instructions", "").strip(),
                     "mcp_servers": sub.get("mcp_servers", []),

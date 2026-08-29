@@ -75,7 +75,7 @@ agent:
   name: rag-doctor
   model:
     provider: google-gemini
-    name: gemini-2-5-flash
+    name: google-gemini/gemini-2-5-flash
   instructions: |
     You are RAG Doctor 🩺, an autonomous self-healing RAG pipeline agent.
     Your workflow:
@@ -107,7 +107,7 @@ subagents:
   - name: diagnose
     model:
       provider: google-gemini
-      name: gemini-2-5-flash
+      name: google-gemini/gemini-2-5-flash
     instructions: |
       You are the Diagnose Subagent for RAG Doctor.
       Your mission is to determine the most likely root cause of RAG pipeline degradation from empirical evidence.
