@@ -151,6 +151,72 @@ def test_candidate_isolation(tmp_path: Path):
     assert len(VectorIndex.load(candidate_dir).chunks) == 2
 
 
+def test_active_index_preservation_during_candidate_build(tmp_path: Path, monkeypatch):
+    """Verify that building a candidate index never modifies active.json or the active index files."""
+    indexes_root = tmp_path / "indexes"
+    indexes_root.mkdir()
+
+    active_dir = indexes_root / "v001"
+    active_dir.mkdir()
+
+    class MockEmbedder:
+        model_name = "mock-model"
+        def embed_texts(self, texts, **kwargs):
+            return np.ones((len(texts), 4), dtype=np.float32)
+        def embed_query(self, query):
+            return np.ones((4,), dtype=np.float32)
+        @property
+        def dimension(self):
+            return 4
+
+    # 1. Establish active index v001
+    active_chunks = [Chunk(id="c1", content="Active doc", metadata={"chunk_size": 500})]
+    VectorIndex.build(
+        chunks=active_chunks,
+        embedder=MockEmbedder(),
+        save_dir=active_dir,
+        version="v001",
+        top_k=3,
+    )
+
+    active_json_file = indexes_root / "active.json"
+    active_state_initial = {"active_version": "v001", "baseline_version": "v001"}
+    active_json_file.write_text(json.dumps(active_state_initial, indent=2))
+
+    active_config_snapshot = (active_dir / "config.json").read_text()
+    active_chunks_snapshot = (active_dir / "chunks.json").read_text()
+    active_faiss_bytes = (active_dir / "index.faiss").read_bytes()
+
+    # 2. Build candidate index exp_002
+    candidate_dir = indexes_root / "exp_002"
+    candidate_chunks = [
+        Chunk(id="c1", content="Candidate doc 1", metadata={"chunk_size": 300}),
+        Chunk(id="c2", content="Candidate doc 2", metadata={"chunk_size": 300}),
+    ]
+    VectorIndex.build(
+        chunks=candidate_chunks,
+        embedder=MockEmbedder(),
+        save_dir=candidate_dir,
+        version="exp_002",
+        top_k=5,
+    )
+
+    # 3. Assert active.json and active index remain 100% preserved
+    active_state_after = json.loads(active_json_file.read_text())
+    assert active_state_after["active_version"] == "v001"
+    assert active_state_after["baseline_version"] == "v001"
+
+    assert (active_dir / "config.json").read_text() == active_config_snapshot
+    assert (active_dir / "chunks.json").read_text() == active_chunks_snapshot
+    assert (active_dir / "index.faiss").read_bytes() == active_faiss_bytes
+
+    # Assert candidate was built in its own isolated directory
+    candidate_loaded = VectorIndex.load(candidate_dir)
+    assert candidate_loaded.config["version"] == "exp_002"
+    assert candidate_loaded.config["top_k"] == 5
+    assert len(candidate_loaded.chunks) == 2
+
+
 def test_generator_prompt_building():
     generator = Generator(api_key="mock_key")
     chunks = [
@@ -359,5 +425,33 @@ def test_mcp_generic_version_resolution(tmp_path: Path, monkeypatch):
             shutil.rmtree(exp_index_dir)
         if original_active is not None:
             exp_active_file.write_text(original_active, encoding="utf-8")
+
+
+def test_query_cli_uses_index_top_k(tmp_path: Path):
+    """Verify that query.py run_query defaults to index top_k when not explicitly passed."""
+    from scripts.query import run_query
+
+    class MockPipeline:
+        def __init__(self, top_k=1):
+            self.top_k = top_k
+            self.retriever = self
+        def retrieve(self, question, top_k=None):
+            self.last_retrieved_k = top_k
+            return [{"metadata": {"relative_path": "doc.md"}, "score": 0.9, "content": "content"}]
+        def query(self, question, top_k=None):
+            self.last_query_k = top_k
+            return {"answer": "mock answer"}
+
+    # 1. No CLI top_k provided: should use pipeline's resolved top_k (1)
+    rag = MockPipeline(top_k=1)
+    run_query(rag, "What is this?", top_k=None)
+    assert rag.last_retrieved_k == 1
+    assert rag.last_query_k == 1
+
+    # 2. Explicit CLI top_k provided: should override (e.g. 5)
+    run_query(rag, "What is this?", top_k=5)
+    assert rag.last_retrieved_k == 5
+    assert rag.last_query_k == 5
+
 
 

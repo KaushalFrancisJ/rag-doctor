@@ -45,7 +45,7 @@ def test_judge_parse_response_valid():
     result = judge._parse_judge_response(raw_json)
     assert result["faithfulness"] == 5
     assert result["answer_relevancy"] == 4
-    assert result["overall_score"] == 4.5
+    assert result["overall_score"] == 4
     assert "supported" in result["faithfulness_reasoning"]
     assert "concise" in result["relevancy_reasoning"]
 
@@ -61,21 +61,21 @@ def test_judge_parse_response_clamping_and_fallback():
     result = judge._parse_judge_response(raw_out_of_bounds)
     assert result["faithfulness"] == 5
     assert result["answer_relevancy"] == 1
-    assert result["overall_score"] == 3.0
+    assert result["overall_score"] == 3
 
     # Markdown codeblock wrapping
     raw_wrapped = "```json\n{\"faithfulness\": 4, \"answer_relevancy\": 4, \"faithfulness_reasoning\": \"ok\"}\n```"
     result = judge._parse_judge_response(raw_wrapped)
     assert result["faithfulness"] == 4
     assert result["answer_relevancy"] == 4
-    assert result["overall_score"] == 4.0
+    assert result["overall_score"] == 4
 
     # Invalid JSON
     raw_invalid = "This is not json at all."
     result = judge._parse_judge_response(raw_invalid)
     assert result["faithfulness"] == 1
     assert result["answer_relevancy"] == 1
-    assert result["overall_score"] == 1.0
+    assert result["overall_score"] == 1
 
 
 def test_judge_prompt_construction():
@@ -303,7 +303,7 @@ def test_validate_diagnosis_invalid():
     with pytest.raises(ValueError, match="Invalid suspected_cause"):
         validate_diagnosis({
             "suspected_cause": "unknown mystery problem",
-            "evidence": "no idea",
+            "evidence": "Chunks cut off mid-sentence with size 70.",
             "confidence": 0.5,
             "hypothesis": "unknown",
             "recommended_experiment": "try something",
@@ -313,11 +313,31 @@ def test_validate_diagnosis_invalid():
     with pytest.raises(ValueError, match="missing required keys"):
         validate_diagnosis({"suspected_cause": "chunking problem"})
 
+    # Evidence too brief
+    with pytest.raises(ValueError, match="too brief"):
+        validate_diagnosis({
+            "suspected_cause": "retrieval problem",
+            "evidence": "short",
+            "confidence": 0.5,
+            "hypothesis": "test",
+            "recommended_experiment": "test",
+        })
+
+    # Evidence unsubstantiated
+    with pytest.raises(ValueError, match="substantiated with concrete data references"):
+        validate_diagnosis({
+            "suspected_cause": "retrieval problem",
+            "evidence": "something seems very wrong here in the system",
+            "confidence": 0.5,
+            "hypothesis": "test",
+            "recommended_experiment": "test",
+        })
+
     # Out of range confidence
     with pytest.raises(ValueError, match="between 0.0 and 1.0"):
         validate_diagnosis({
             "suspected_cause": "retrieval problem",
-            "evidence": "too low top_k",
+            "evidence": "Too low top_k with only 1 chunk retrieved from index.",
             "confidence": 1.5,
             "hypothesis": "insufficient chunks retrieved",
             "recommended_experiment": "increase top_k",
@@ -338,5 +358,68 @@ def test_fetch_diagnostic_context_and_prompt_formatting():
     assert "Pipeline Configurations" in prompt
     assert "v003_retrieval_sick" in prompt
     assert "Failing Queries Analysis" in prompt
+
+
+def test_validate_fix_experiment_valid():
+    from agent.fix import validate_fix_experiment
+
+    # Valid chunking proposal
+    chunking_payload = {
+        "hypothesis": "Increasing chunk size restores context.",
+        "strategy": "chunking",
+        "changes": {"chunk_size": 400, "overlap": 80},
+        "expected_effect": "Improve grounding.",
+        "reasoning": "Chunks were too small.",
+    }
+    val_chunk = validate_fix_experiment(chunking_payload)
+    assert val_chunk["strategy"] == "chunking"
+    assert val_chunk["changes"]["chunk_size"] == 400
+
+    # Valid retrieval proposal
+    retrieval_payload = {
+        "hypothesis": "Increasing top_k fetches more chunks.",
+        "strategy": "retrieval",
+        "changes": {"top_k": 3},
+        "expected_effect": "Improve answer coverage.",
+        "reasoning": "Only 1 chunk retrieved.",
+    }
+    val_ret = validate_fix_experiment(retrieval_payload)
+    assert val_ret["strategy"] == "retrieval"
+    assert val_ret["changes"]["top_k"] == 3
+
+
+def test_validate_fix_experiment_invalid():
+    from agent.fix import validate_fix_experiment
+
+    # Invalid strategy
+    with pytest.raises(ValueError, match="Invalid strategy"):
+        validate_fix_experiment({
+            "hypothesis": "Test",
+            "strategy": "magic_fix",
+            "changes": {"top_k": 3},
+            "expected_effect": "Nothing",
+            "reasoning": "Test",
+        })
+
+    # Disallowed parameter for retrieval
+    with pytest.raises(ValueError, match="Parameter 'chunk_size' is not allowed for strategy 'retrieval'"):
+        validate_fix_experiment({
+            "hypothesis": "Test",
+            "strategy": "retrieval",
+            "changes": {"chunk_size": 300},
+            "expected_effect": "Nothing",
+            "reasoning": "Test",
+        })
+
+    # Non-positive chunk size
+    with pytest.raises(ValueError, match="positive integer"):
+        validate_fix_experiment({
+            "hypothesis": "Test",
+            "strategy": "chunking",
+            "changes": {"chunk_size": -10},
+            "expected_effect": "Nothing",
+            "reasoning": "Test",
+        })
+
 
 

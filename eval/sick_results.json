@@ -11,7 +11,8 @@
     "threshold": 3.5,
     "passing_count": 18,
     "failing_count": 2,
-    "is_degraded": true
+    "is_degraded": true,
+    "overall_score": 4
   },
   "failing_queries": [
     {
@@ -74,7 +75,7 @@
       "faithfulness_reasoning": "The answer states the context lacks necessary details, but the retrieved chunks do mention creating a PasswordHash (or CryptContext) instance with recommended settings, which supports the core steps. The answer adds unsupported claims and does not reflect the available information.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The response does not provide the hashing and verification procedure asked for, instead asking for more documentation, so it fails to directly answer the user's question.",
-      "overall_score": 2.0,
+      "overall_score": 2,
       "passed": false
     },
     {
@@ -137,7 +138,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the retrieved context does not contain any mention of FastAPI parameters for OpenAPI docs, which is consistent with the provided chunks.",
       "answer_relevancy": 1,
       "relevancy_reasoning": "The response does not supply the requested parameters, thus it fails to answer the user's question.",
-      "overall_score": 3.0,
+      "overall_score": 3,
       "passed": false
     }
   ],
@@ -202,7 +203,7 @@
       "faithfulness_reasoning": "The answer correctly describes using BackgroundTasks and add_task, which aligns with the retrieved snippets mentioning BackgroundTask usage and that background code runs after the request. However, the explicit statement that tasks run after the HTTP response is not directly shown in the fragmented context, so there is a slight extrapolation beyond the provided text.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly explains how to schedule a background task in FastAPI with code and specifies that it runs after the HTTP response, fully addressing both parts of the user question.",
-      "overall_score": 4.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -265,7 +266,7 @@
       "faithfulness_reasoning": "The answer correctly notes that BackgroundTasks works with FastAPI's dependency system, which is supported by the context fragment 'Using `BackgroundTasks` also works with the depend'. However, the statement that background‑task functions can receive regular and sub‑dependencies is not explicitly mentioned in the retrieved documents, so the answer includes an unsupported extrapolation.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly addresses the question by confirming that background tasks can access dependencies and be injected through sub‑dependencies, providing a clear and relevant answer.",
-      "overall_score": 4.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -328,7 +329,7 @@
       "faithfulness_reasoning": "The answer's steps (using @app.middleware('http'), recording start time with time.time(), awaiting call_next, computing elapsed time, and setting response.headers['X-Process-Time']) are directly supported by the retrieved context mentioning custom middleware and the X-Process-Time header.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly and completely explains how to implement the requested middleware, includes example code, and addresses all parts of the question without irrelevant information.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -391,7 +392,7 @@
       "faithfulness_reasoning": "The answer states the middleware receives 'request' and a callable (call_next) and must return a Response object, which directly matches the retrieved context indicating it receives the request and a function and must return a Response.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly answers both parts of the question, specifying the parameters and the required return type, covering the query completely and concisely.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -454,7 +455,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the retrieved context excerpts do not contain details about FastAPI's dependency sharing or caching, so it does not introduce unsupported claims.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "While the response acknowledges the lack of information, it fails to answer the user's specific question about FastAPI's caching behavior, resulting in low relevance.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -517,7 +518,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the provided context excerpts do not contain the syntax for declaring a dependency, which is consistent with the retrieved text.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The answer does not explain how to declare a dependency, merely stating the context lacks that information, so it fails to directly address the user's question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -580,7 +581,7 @@
       "faithfulness_reasoning": "The answer correctly states that an APIRouter can be included in the main FastAPI app using app.include_router(), which is directly supported by the retrieved context. The details about creating separate files and example code are reasonable extensions but are not explicitly present in the context, so the answer adds information beyond what was retrieved.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly addresses how to group related routes into separate files and include them in the main app, providing clear steps and code examples that fully answer the user's question.",
-      "overall_score": 4.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -643,7 +644,7 @@
       "faithfulness_reasoning": "The answer correctly states that the retrieved chunks only mention that a router can have custom prefix, tags, etc., and do not provide an explanation of their purpose, matching the context.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "While the answer addresses the limitation of the provided context, it does not supply the requested explanation of why prefix and tags are used, thus failing to directly answer the user's question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -706,7 +707,7 @@
       "faithfulness_reasoning": "The answer correctly states that the retrieved excerpts only mention using Pydantic models for request bodies and contain no details on optional versus required fields, without adding unsupported claims.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The response does not provide the requested guidance on declaring optional and required fields, merely noting the context's limitation, so it fails to adequately answer the user's question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -769,7 +770,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the retrieved snippets only mention FastAPI recognizing path and query parameters and do not detail the differentiation mechanism, so it does not introduce unsupported claims.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The response does not answer how FastAPI distinguishes path, query, and body parameters; it merely notes the lack of information, which does not satisfy the user's request for an explanation.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -832,7 +833,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the provided context fragments do not contain a clear guideline about using def versus async def, which aligns with the content of the retrieved documents.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The response does not answer the user's question about when to use a normal def; it only states that the context lacks the information, thus it fails to provide the needed guidance.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -895,7 +896,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the retrieved chunks only mention FastAPI will handle def functions correctly and do not provide details on the execution mechanism, so stating insufficient information is faithful to the context.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "While the answer addresses the question by noting the lack of information, it does not provide the actual explanation of how FastAPI avoids blocking, thus it fails to adequately answer the user's query.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -958,7 +959,7 @@
       "faithfulness_reasoning": "The answer correctly notes that OAuth2PasswordBearer is a special FastAPI class for handling OAuth2 password flow, which is supported by the retrieved snippets. However, the explanation of tokenUrl as the endpoint for obtaining tokens is not present in the provided context, making that part unsupported.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly addresses both parts of the user question, explaining the role of OAuth2PasswordBearer and the purpose of tokenUrl, thus fully satisfying the query.",
-      "overall_score": 4.0,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -1021,7 +1022,7 @@
       "faithfulness_reasoning": "The answer accurately reflects the retrieved chunks, which mention only a random secret key creation and do not specify any signing algorithm or payload contents, so it contains no unsupported claims.",
       "answer_relevancy": 4,
       "relevancy_reasoning": "The response directly addresses the user's question by stating that the provided excerpts lack the requested details, which is appropriate given the context, though it does not supply the actual algorithm or payload information.",
-      "overall_score": 4.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -1084,7 +1085,7 @@
       "faithfulness_reasoning": "The answer states the context lacks necessary details, but the retrieved chunks do mention creating a PasswordHash (or CryptContext) instance with recommended settings, which supports the core steps. The answer adds unsupported claims and does not reflect the available information.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The response does not provide the hashing and verification procedure asked for, instead asking for more documentation, so it fails to directly answer the user's question.",
-      "overall_score": 2.0,
+      "overall_score": 2,
       "passed": false
     },
     {
@@ -1147,7 +1148,7 @@
       "faithfulness_reasoning": "The answer only claims that the retrieved excerpts do not explain why form data is required, which is accurate given the incomplete context; it makes no unsupported statements.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The response does not answer the user's question about the reason for using form data, merely stating a lack of information, so it is poorly relevant.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -1210,7 +1211,7 @@
       "faithfulness_reasoning": "The answer correctly captures the core steps mentioned in the retrieved context—receiving the token via the same oauth2_scheme, verifying it, and raising an HTTP 401 on failure. While it adds typical implementation details (jwt.decode, SECRET_KEY, etc.) not present in the fragments, these details do not contradict the context, so the answer is mostly faithful.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly provides a concrete implementation of the get_current_user dependency, explains how it validates the token, and shows the 401 error handling, fully addressing the user’s request.",
-      "overall_score": 4.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -1273,7 +1274,7 @@
       "faithfulness_reasoning": "The answer correctly states that the retrieved context does not specify the documentation interfaces, which aligns with the provided chunks that contain no mention of Swagger UI or ReDoc.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The answer does not provide the requested information about the two interfaces, merely noting the lack of data, thus it fails to adequately address the user’s question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -1336,7 +1337,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that none of the retrieved chunks contain details on FastAPI's performance mechanisms, which is consistent with the provided context.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "While the response acknowledges the question, it does not supply the requested explanation of FastAPI's high performance, thus offering little useful information to the user.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -1399,7 +1400,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the retrieved context does not contain any mention of FastAPI parameters for OpenAPI docs, which is consistent with the provided chunks.",
       "answer_relevancy": 1,
       "relevancy_reasoning": "The response does not supply the requested parameters, thus it fails to answer the user's question.",
-      "overall_score": 3.0,
+      "overall_score": 3,
       "passed": false
     }
   ]

@@ -11,7 +11,8 @@
     "threshold": 3.5,
     "passing_count": 20,
     "failing_count": 0,
-    "is_degraded": false
+    "is_degraded": false,
+    "overall_score": 5
   },
   "failing_queries": [],
   "results": [
@@ -75,7 +76,7 @@
       "faithfulness_reasoning": "The answer’s description of using BackgroundTasks, calling add_task, and that the task runs after the HTTP response aligns with the retrieved context (chunks mention BackgroundTasks, add_task, and execution after response is sent). No unsupported claims are present.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly explains how to schedule a background task in FastAPI and specifies that it executes after the response is returned, fully addressing the user’s question.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -138,7 +139,7 @@
       "faithfulness_reasoning": "The answer correctly states that BackgroundTasks can be used as a parameter in path‑operation functions and dependencies, which is supported by the retrieved context. However, the claim that background‑task functions cannot receive FastAPI dependencies automatically is not mentioned in the context, making that part unsupported.",
       "answer_relevancy": 4,
       "relevancy_reasoning": "The answer directly addresses the user's question about accessing or injecting dependencies in background tasks, explaining both the supported injection of BackgroundTasks via dependencies and the need to pass other arguments manually, thus providing a relevant and mostly complete response.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -201,7 +202,7 @@
       "faithfulness_reasoning": "All steps described—using @app.middleware('http'), accepting Request and call_next, measuring time with time.perf_counter(), awaiting call_next, computing elapsed time, and adding the X-Process-Time header—are directly supported by the retrieved context.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The answer directly addresses how to create the custom HTTP middleware, provides a complete, correct code example, and explains each part, fully satisfying the user’s request.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -264,7 +265,7 @@
       "faithfulness_reasoning": "The answer states that the middleware receives the request object and returns a response object, both of which are explicitly mentioned in the retrieved context; no unsupported claims are made.",
       "answer_relevancy": 3,
       "relevancy_reasoning": "The answer correctly identifies the request parameter and required response type, but it omits the second expected parameter (call_next), so it only partially fulfills the user's question.",
-      "overall_score": 4.0,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -327,7 +328,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the provided context excerpts do not contain information about dependency caching or sharing, and it does not introduce unsupported claims.",
       "answer_relevancy": 3,
       "relevancy_reasoning": "The response addresses the user's question by noting the lack of relevant information, but it does not actually answer how FastAPI handles caching, resulting in only a partial relevance.",
-      "overall_score": 4.0,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -390,7 +391,7 @@
       "faithfulness_reasoning": "The answer states that a dependency is declared by adding a parameter with default Depends(...), which matches the retrieved context describing FastAPI calling the dependency and assigning its result to the path operation function parameter.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly answers the question, explains the declaration method, and provides a clear code example, fully addressing the query.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -453,7 +454,7 @@
       "faithfulness_reasoning": "All statements (using APIRouter in separate files, app.include_router to add routes, multiple inclusions with different prefixes, nesting routers) are directly supported by the retrieved context chunks.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The answer directly explains how to group routes in separate modules and include them in the main FastAPI app, covering creation, import, inclusion, and related options, fully addressing the user question.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -516,7 +517,7 @@
       "faithfulness_reasoning": "The answer states that prefix prepends a path segment to all routes and tags group operations in the OpenAPI docs, which is directly supported by the retrieved context (e.g., prefix /admin and tag admin in Chunk 3, and combined metadata including prefixes and tags in Chunk 1). No unsupported claims are present.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly addresses the user's question, clearly explaining the purpose of both prefix and tags for an APIRouter, and does so concisely without extraneous information.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -579,7 +580,7 @@
       "faithfulness_reasoning": "The answer’s claims about using a Pydantic model, required fields lacking defaults, and optional fields using default=None are directly supported by the retrieved context, which states FastAPI determines optionality from default values and uses Pydantic models for request bodies. No statements contradict the context.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly answers the question by explaining how to declare required and optional fields in a FastAPI request body and provides a clear code example, fully covering the query.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -642,7 +643,7 @@
       "faithfulness_reasoning": "The answer restates the three rules from the context: path parameters are identified by matching the URL path, singular‑type parameters become query parameters, and Pydantic model parameters are treated as request body, matching the retrieved excerpts.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly and completely explains how FastAPI distinguishes path, query, and body parameters in a function signature, fully addressing the user’s question.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -705,7 +706,7 @@
       "faithfulness_reasoning": "All claims (def runs in threadpool, use def if you don't need await or are unsure, use async def for I/O‑bound awaiting) are directly supported by the retrieved context chunks.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The answer directly and comprehensively explains when to choose a normal def over async def for FastAPI path operations, fully addressing the user question.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -768,7 +769,7 @@
       "faithfulness_reasoning": "The answer states that normal def path operation functions are run in an external/background threadpool and awaited, which matches the retrieved context describing execution in an external threadpool to avoid blocking the event loop.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly explains how FastAPI handles normal def functions to prevent blocking the main event loop, fully addressing the user's question.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -831,7 +832,7 @@
       "faithfulness_reasoning": "The answer correctly describes OAuth2PasswordBearer's role (extracting Bearer token, adding security scheme to OpenAPI) which is supported by the context. However, the explanation of tokenUrl is not present in the retrieved documents, so that part is ungrounded.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly answers both parts of the user question, explaining the function of OAuth2PasswordBearer and the purpose of tokenUrl, providing a complete and focused answer.",
-      "overall_score": 4.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -894,7 +895,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the retrieved context excerpts contain no information about the JWT signing algorithm, secret key, or payload contents, matching the provided documents.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The response does not supply the requested details about the algorithm, secret key, or typical payload, merely noting their absence, so it fails to adequately answer the user's question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -957,7 +958,7 @@
       "faithfulness_reasoning": "All statements in the answer accurately reflect the retrieved context, which only mentions pwdlib as preferred and PassLib for legacy hashes and provides no concrete PassLib example.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The answer does not provide the requested instructions for hashing and verifying passwords with PassLib in FastAPI, merely stating the docs lack details, thus it fails to address the core of the user's question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -1020,7 +1021,7 @@
       "faithfulness_reasoning": "The answer states that OAuth2 password flow mandates form‑encoded username/password and that FastAPI's OAuth2PasswordRequestForm is a convenience wrapper, both directly supported by the retrieved chunks.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly explains why FastAPI uses form data (spec requirement) and why the helper class is provided, fully addressing the user's question.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -1083,7 +1084,7 @@
       "faithfulness_reasoning": "The answer's code and explanation match the retrieved context: it uses Depends(oauth2_scheme) to get the token, decodes it, checks the 'sub' claim, raises an HTTPException with status 401 and appropriate headers, and looks up the user—exactly the steps described in the context snippets.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly answers how to implement get_current_user, providing a complete code example and clear explanation, fully addressing the user's request.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -1146,7 +1147,7 @@
       "faithfulness_reasoning": "The answer lists Swagger UI and ReDoc, which are explicitly mentioned in the retrieved context as the two default interactive documentation interfaces provided by FastAPI.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly answers the question by naming both interfaces, fully covering the request without irrelevant information.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -1209,7 +1210,7 @@
       "faithfulness_reasoning": "The answer’s statements about FastAPI being built on Starlette, using async route handlers, supporting parallelism/multiprocessing, and achieving performance on par with NodeJS and Go are all directly supported by the retrieved context.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly explains the architectural features (Starlette base, async I/O, parallelism) that give FastAPI its high performance, fully addressing the user’s question.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -1272,7 +1273,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the retrieved context does not mention any FastAPI parameters for customizing or disabling OpenAPI docs URLs, and it makes no unsupported claims.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The response does not provide the requested parameters (docs_url, redoc_url, openapi_url) and merely states the information is absent, thus failing to directly answer the user's question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": true
     }
   ]

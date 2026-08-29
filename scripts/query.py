@@ -16,7 +16,7 @@ def main():
     parser = argparse.ArgumentParser(description="Query the RAG Doctor pipeline.")
     parser.add_argument("question", nargs="?", type=str, help="Question to ask")
     parser.add_argument("--index-dir", type=str, default="indexes/v001", help="Path to index directory")
-    parser.add_argument("--top-k", type=int, default=3, help="Number of context chunks to retrieve")
+    parser.add_argument("--top-k", type=int, default=None, help="Number of context chunks to retrieve (defaults to index config)")
 
     args = parser.parse_args()
 
@@ -36,17 +36,18 @@ def main():
                 break
 
 
-def run_query(rag: RAGPipeline, question: str, top_k: int):
+def run_query(rag: RAGPipeline, question: str, top_k: int | None = None):
+    effective_k = top_k if top_k is not None else rag.top_k
     print(f"\n--- Question: {question} ---")
-    retrieved = rag.retriever.retrieve(question, top_k=top_k)
-    print(f"\nRetrieved {len(retrieved)} context chunks:")
+    retrieved = rag.retriever.retrieve(question, top_k=effective_k)
+    print(f"\nRetrieved {len(retrieved)} context chunks (top_k={effective_k}):")
     for i, chunk in enumerate(retrieved, 1):
         source = chunk["metadata"].get("relative_path", "unknown")
         print(f"  [{i}] Source: {source} (Score: {chunk['score']:.4f})")
         print(f"      Snippet: {chunk['content'][:140]}...\n")
 
     print("Generating answer from Groq...")
-    result = rag.query(question, top_k=top_k)
+    result = rag.query(question, top_k=effective_k)
     print(f"\nAnswer:\n{result['answer']}")
 
 

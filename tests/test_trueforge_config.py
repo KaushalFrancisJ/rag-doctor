@@ -34,6 +34,17 @@ def test_trueforge_yaml_valid():
     assert {"suspected_cause", "evidence", "confidence", "hypothesis", "recommended_experiment"} <= required_fields
     assert len(schema["properties"]["suspected_cause"]["enum"]) == 7
 
+    # Verify Fix subagent
+    fix_sub = next((s for s in data["subagents"] if s["name"] == "fix"), None)
+    assert fix_sub is not None, "Fix subagent must be defined in trueforge.yaml"
+    assert fix_sub["config"]["sandbox"]["enabled"] is False
+    assert fix_sub["config"]["dynamic_sub_agents"]["enabled"] is False
+    assert fix_sub["response_format"]["type"] == "json_schema"
+
+    fix_schema = fix_sub["response_format"]["json_schema"]["schema"]
+    assert {"hypothesis", "strategy", "changes", "expected_effect", "reasoning"} <= set(fix_schema["required"])
+    assert fix_schema["properties"]["strategy"]["enum"] == ["chunking", "retrieval"]
+
 
 def test_trueforge_catalogs():
     models_catalog = Path("trueforge-models.yaml")

@@ -83,10 +83,21 @@ agent:
     2. If health is DEGRADED, delegate the investigation to the Diagnose subagent using `create_sub_agent`:
        - Subagent name: `diagnose`
        - Task input: "Investigate pipeline degradation for active index. Analyze failing queries, retrieve configurations, and output the root cause diagnosis JSON."
-    3. Review the returned diagnosis JSON (`suspected_cause`, `evidence`, `confidence`, `hypothesis`, `recommended_experiment`).
-    4. Formulate a concrete remediation plan based on the diagnosis and execute the re-chunking/re-indexing fix inside the Daytona sandbox.
-    5. Re-evaluate the candidate index in the sandbox.
-    6. Present before/after scores, diagnosis, and evidence to the human user, and request approval before promoting the candidate.
+    3. Delegate remediation design to the Fix subagent using `create_sub_agent`:
+       - Subagent name: `fix`
+       - Task input: "Formulate an isolated candidate experiment specification based on the diagnosis and configurations."
+    4. Review the candidate experiment specification (`strategy`, `changes`, `hypothesis`).
+    5. Execute the re-chunking/re-indexing fix inside the Daytona sandbox to build an isolated candidate index.
+    6. Re-evaluate the candidate index in the sandbox.
+    7. Construct and present the complete promotion summary containing all 7 required fields to the human user:
+       - `diagnosis`: root cause diagnosis object
+       - `proposed_remediation`: remediation experiment specification
+       - `baseline_score`: baseline overall score
+       - `candidate_score`: candidate overall score
+       - `score_delta`: numerical score improvement
+       - `regressions`: list of regressed query IDs (or explicit `[]` if none)
+       - `affected_evaluation_examples`: list of evaluation query IDs affected (or explicit `[]` if none)
+    8. Request explicit human approval before promoting the candidate index to active. Never automatically promote.
   config:
     sandbox:
       enabled: true
@@ -156,6 +167,8 @@ subagents:
                 - evaluation/data problem
             evidence:
               type: string
+              minLength: 15
+              description: Substantiated empirical evidence citing observed chunk sizes, overlap, top_k, query context, or scores
             confidence:
               type: number
               minimum: 0.0
@@ -191,3 +204,80 @@ subagents:
           - get_failed_queries
           - inspect_retrieval
           - get_pipeline_config
+
+  - name: fix
+    model:
+      provider: google-gemini
+      name: google-gemini/gemini-2-5-flash
+    instructions: |
+      You are the Fix Subagent for RAG Doctor 🩺.
+      Your mission is to turn a root-cause diagnosis of RAG pipeline degradation into a concrete, isolated candidate experiment specification.
+
+      Supported remediation strategies for MVP:
+      1. `chunking`:
+         - Supported parameter changes: `chunk_size` (int), `overlap` (int)
+         - Use when the diagnosis identifies fragmented text, truncated context, or poor semantic boundaries.
+      2. `retrieval`:
+         - Supported parameter changes: `top_k` (int)
+         - Use when the diagnosis identifies insufficient chunk count or rank cutoff causing relevant passages to be missed.
+
+      Rules:
+      - Propose, do not execute: You design an experiment specification for isolated sandbox execution.
+      - Make the smallest reasonable parameter change to remediate the defect.
+      - Do not modify unrelated parameters or active index state.
+      - Base parameter adjustments directly on diagnosis evidence and baseline configuration.
+      - Strictly output JSON matching the required schema.
+    response_format:
+      type: json_schema
+      json_schema:
+        name: rag_fix_experiment
+        description: Structured candidate experiment specification to remediate RAG degradation
+        strict: true
+        schema:
+          type: object
+          properties:
+            hypothesis:
+              type: string
+            strategy:
+              type: string
+              enum:
+                - chunking
+                - retrieval
+            changes:
+              type: object
+              properties:
+                chunk_size:
+                  type: integer
+                overlap:
+                  type: integer
+                top_k:
+                  type: integer
+              additionalProperties: false
+            expected_effect:
+              type: string
+            reasoning:
+              type: string
+          required:
+            - hypothesis
+            - strategy
+            - changes
+            - expected_effect
+            - reasoning
+          additionalProperties: false
+    config:
+      sandbox:
+        enabled: false
+      dynamic_sub_agents:
+        enabled: false
+      ask_user_questions:
+        enabled: false
+      context_management:
+        compaction:
+          enabled: true
+        large_tool_response:
+          enabled: true
+    mcp_servers:
+      - name: rag-doctor-mcp
+        enable_tools:
+          - get_pipeline_config
+          - inspect_retrieval

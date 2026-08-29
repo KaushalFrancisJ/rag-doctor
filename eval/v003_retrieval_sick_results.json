@@ -11,7 +11,8 @@
     "threshold": 3.5,
     "passing_count": 13,
     "failing_count": 7,
-    "is_degraded": true
+    "is_degraded": true,
+    "overall_score": 4
   },
   "failing_queries": [
     {
@@ -42,7 +43,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the provided context excerpt contains no mention of dependencies or sub‑dependencies for BackgroundTask, so it does not introduce unsupported claims.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "While it acknowledges the question, it merely states the context lacks the information and does not answer whether background tasks can access dependencies, thus it fails to directly address the user's query.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     },
     {
@@ -73,7 +74,7 @@
       "faithfulness_reasoning": "The answer correctly states that the provided context only describes middleware generally and does not contain the specific implementation details for measuring execution time, which matches the content of the retrieved chunk.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The response does not provide the requested instructions for creating custom HTTP middleware; it merely notes the lack of detail in the context, thus failing to answer the user's question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     },
     {
@@ -104,7 +105,7 @@
       "faithfulness_reasoning": "The answer accurately notes that the retrieved excerpt does not include the specific syntax for declaring a dependency, which matches the content of the context.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The response does not provide the requested way to declare a dependency and only comments on the missing information, so it does not directly answer the user's question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     },
     {
@@ -135,7 +136,7 @@
       "faithfulness_reasoning": "The answer accurately reflects the retrieved context, which only mentions pwdlib and briefly notes PassLib for legacy hashes without providing hashing/verification code, so its claim of insufficient information is supported.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The answer does not supply the requested method for hashing and verifying passwords with PassLib, merely stating the documentation lacks it, thus it fails to directly answer the user’s question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     },
     {
@@ -166,7 +167,7 @@
       "faithfulness_reasoning": "The answer accurately reflects the retrieved context, stating that OAuth2PasswordRequestForm is a convenience class and that the excerpt does not explain why form data is required; all claims are directly supported by the provided text.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The answer does not address the core question of why OAuth2 requires form data instead of JSON; it merely notes the lack of information in the context, providing no explanatory answer.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     },
     {
@@ -197,7 +198,7 @@
       "faithfulness_reasoning": "The answer correctly states that the provided context does not mention the names of the documentation interfaces, which aligns with the retrieved excerpt.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "While the answer acknowledges the question, it fails to provide the requested information about the two interfaces, offering no substantive answer.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     },
     {
@@ -228,7 +229,7 @@
       "faithfulness_reasoning": "The answer correctly states that the retrieved context does not contain information about FastAPI parameters for OpenAPI docs, which matches the provided excerpt.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "While the response acknowledges the question, it does not provide the requested parameters, offering only that the information is absent, thus it fails to answer the user's query.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     }
   ],
@@ -261,7 +262,7 @@
       "faithfulness_reasoning": "The answer correctly describes using BackgroundTasks and BackgroundTask as mentioned in the context, but adds the claim that the task runs after the HTTP response, which is not stated in the retrieved snippet, making that part unsupported.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly explains how to schedule a background task in FastAPI and clearly states when it executes, fully addressing both parts of the user question.",
-      "overall_score": 4.0,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -292,7 +293,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the provided context excerpt contains no mention of dependencies or sub‑dependencies for BackgroundTask, so it does not introduce unsupported claims.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "While it acknowledges the question, it merely states the context lacks the information and does not answer whether background tasks can access dependencies, thus it fails to directly address the user's query.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     },
     {
@@ -323,7 +324,7 @@
       "faithfulness_reasoning": "The answer correctly states that the provided context only describes middleware generally and does not contain the specific implementation details for measuring execution time, which matches the content of the retrieved chunk.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The response does not provide the requested instructions for creating custom HTTP middleware; it merely notes the lack of detail in the context, thus failing to answer the user's question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     },
     {
@@ -354,7 +355,7 @@
       "faithfulness_reasoning": "The answer states the middleware receives the request object and returns a response, which is directly supported by the retrieved context. No unsupported claims are made.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The answer directly addresses both parts of the question: the parameter(s) received (request) and the required return type (Response), providing a complete and concise response.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -385,7 +386,7 @@
       "faithfulness_reasoning": "The answer accurately reflects that the provided context does not contain information about FastAPI's dependency caching, and it does not introduce unsupported claims.",
       "answer_relevancy": 3,
       "relevancy_reasoning": "The response addresses the user's query by stating the context is insufficient, but it fails to provide the actual explanation of caching behavior, thus missing key information.",
-      "overall_score": 4.0,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -416,7 +417,7 @@
       "faithfulness_reasoning": "The answer accurately notes that the retrieved excerpt does not include the specific syntax for declaring a dependency, which matches the content of the context.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The response does not provide the requested way to declare a dependency and only comments on the missing information, so it does not directly answer the user's question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     },
     {
@@ -447,7 +448,7 @@
       "faithfulness_reasoning": "All factual statements (app.include_router adds each APIRouter, includes all routes, and original router remains active) are directly supported by the retrieved context; additional code examples are consistent and not contradictory.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The answer directly explains how to group routes in separate files, create APIRouter instances, and include them in the main FastAPI app, fully addressing the user question.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -478,7 +479,7 @@
       "faithfulness_reasoning": "The answer states that prefix prepends to all routes and tags group operations in the OpenAPI schema, which directly matches the context describing how FastAPI combines router prefixes and tags when handling requests and generating OpenAPI metadata.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly addresses the purpose of both prefix and tags for an APIRouter, explaining their effect on URLs and documentation, fully satisfying the user's question.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -509,7 +510,7 @@
       "faithfulness_reasoning": "The answer correctly states that FastAPI treats fields with a default (e.g., =None) as optional and those without as required, which is supported by the context. It also mentions using Body parameters, which aligns with the context. The specific claim about using Body(...) for required fields is not directly in the retrieved text but is consistent with FastAPI behavior, so the answer is mostly faithful with minor unsupported detail.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly addresses how to declare optional and required fields in a request body, providing both a Pydantic model example and a raw Body parameter example, fully covering the user's question.",
-      "overall_score": 4.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -540,7 +541,7 @@
       "faithfulness_reasoning": "The answer directly mirrors the three rules from the context—path name matching, singular type for query, and Pydantic model for body—without adding unsupported claims.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "It fully addresses the question by explaining how FastAPI distinguishes each parameter type in a function signature.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -571,7 +572,7 @@
       "faithfulness_reasoning": "The answer correctly states that normal def functions are run in an external threadpool to avoid blocking, which is supported by the context. However, it adds details (CPU‑intensive work, specific library examples) that are not present in the retrieved text, so not fully grounded.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly answers the question by explaining when to use def instead of async def, providing a clear and complete explanation.",
-      "overall_score": 4.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -602,7 +603,7 @@
       "faithfulness_reasoning": "All statements (detecting def, using external thread‑pool, awaiting the task, keeping the event loop free) are directly supported by the retrieved context which says normal def functions run in an external threadpool and are awaited.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The answer directly explains how FastAPI handles normal def path operations to avoid blocking the event loop, fully addressing the user question.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -633,7 +634,7 @@
       "faithfulness_reasoning": "The answer's description of OAuth2PasswordBearer matches the context, which states it extracts the Bearer token from the Authorization header. It correctly notes that tokenUrl is not mentioned in the provided excerpt and gives a general definition without contradicting the context.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly addresses both parts of the question: it explains the role of OAuth2PasswordBearer in authentication and clarifies the purpose of tokenUrl, providing a complete and pertinent answer.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -664,7 +665,7 @@
       "faithfulness_reasoning": "The answer correctly notes that the retrieved context contains no information about the JWT signing algorithm, secret key, or payload contents, matching the provided excerpt.",
       "answer_relevancy": 4,
       "relevancy_reasoning": "The response directly addresses the question by stating the information is absent from the context, though it does not supply the requested details, making it relevant but not fully answering the query.",
-      "overall_score": 4.5,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -695,7 +696,7 @@
       "faithfulness_reasoning": "The answer accurately reflects the retrieved context, which only mentions pwdlib and briefly notes PassLib for legacy hashes without providing hashing/verification code, so its claim of insufficient information is supported.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The answer does not supply the requested method for hashing and verifying passwords with PassLib, merely stating the documentation lacks it, thus it fails to directly answer the user’s question.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     },
     {
@@ -726,7 +727,7 @@
       "faithfulness_reasoning": "The answer accurately reflects the retrieved context, stating that OAuth2PasswordRequestForm is a convenience class and that the excerpt does not explain why form data is required; all claims are directly supported by the provided text.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "The answer does not address the core question of why OAuth2 requires form data instead of JSON; it merely notes the lack of information in the context, providing no explanatory answer.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     },
     {
@@ -757,7 +758,7 @@
       "faithfulness_reasoning": "The answer correctly describes using OAuth2PasswordBearer and raising a 401 HTTPException, which aligns with the general idea in the context, but specific details like decode_token, exact exception fields, and code snippets are not present in the retrieved context, making the answer only partially grounded.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The response directly answers how to implement get_current_user, provides clear code and step-by-step explanation, fully addressing the user's request.",
-      "overall_score": 4.0,
+      "overall_score": 4,
       "passed": true
     },
     {
@@ -788,7 +789,7 @@
       "faithfulness_reasoning": "The answer correctly states that the provided context does not mention the names of the documentation interfaces, which aligns with the retrieved excerpt.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "While the answer acknowledges the question, it fails to provide the requested information about the two interfaces, offering no substantive answer.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     },
     {
@@ -819,7 +820,7 @@
       "faithfulness_reasoning": "All claims (Starlette foundation, async/await handling, similarity to NodeJS async model, combination of async with parallelism, higher performance than most NodeJS frameworks and parity with Go) are directly supported by the retrieved context.",
       "answer_relevancy": 5,
       "relevancy_reasoning": "The answer directly explains the mechanisms (Starlette, async code, parallelism) by which FastAPI attains performance comparable to NodeJS and Go, fully addressing the user question.",
-      "overall_score": 5.0,
+      "overall_score": 5,
       "passed": true
     },
     {
@@ -850,7 +851,7 @@
       "faithfulness_reasoning": "The answer correctly states that the retrieved context does not contain information about FastAPI parameters for OpenAPI docs, which matches the provided excerpt.",
       "answer_relevancy": 2,
       "relevancy_reasoning": "While the response acknowledges the question, it does not provide the requested parameters, offering only that the information is absent, thus it fails to answer the user's query.",
-      "overall_score": 3.5,
+      "overall_score": 4,
       "passed": false
     }
   ]

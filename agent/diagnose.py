@@ -98,6 +98,21 @@ def validate_diagnosis(data: Dict[str, Any]) -> Dict[str, Any]:
     evidence = str(data["evidence"]).strip()
     if not evidence:
         raise ValueError("Diagnosis 'evidence' must not be empty.")
+    if len(evidence) < 15:
+        raise ValueError("Diagnosis 'evidence' is too brief; must provide substantiated reasoning.")
+
+    # Check for substantiated data references
+    substantiating_terms = {
+        "chunk", "overlap", "top_k", "retriev", "query", "queries", "score", "config",
+        "context", "token", "passage", "size", "ground", "sentence", "document", "embed",
+        "index", "faithfulness", "relevan"
+    }
+    evidence_lower = evidence.lower()
+    if not any(term in evidence_lower for term in substantiating_terms):
+        raise ValueError(
+            "Diagnosis 'evidence' must be substantiated with concrete data references "
+            "(e.g., chunk size, overlap, top_k, query context, or observed scores)."
+        )
 
     hypothesis = str(data.get("hypothesis", "")).strip()
     if not hypothesis:

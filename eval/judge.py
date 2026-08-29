@@ -190,7 +190,8 @@ class Judge:
         faith_reason = str(data.get("faithfulness_reasoning", "No reasoning provided.")).strip()
         rel_reason = str(data.get("relevancy_reasoning", "No reasoning provided.")).strip()
 
-        overall_score = round((faithfulness + answer_relevancy) / 2.0, 2)
+        overall_score = int(round((faithfulness + answer_relevancy) / 2.0))
+        overall_score = max(1, min(5, overall_score))
 
         return {
             "faithfulness": faithfulness,
@@ -302,6 +303,7 @@ class Judge:
                 "judge_model": self.model_name,
                 "generator_model": generator.model_name,
                 "total_queries": count,
+                "overall_score": int(round(avg_overall)) if count else 0,
                 "avg_faithfulness": avg_faithfulness,
                 "avg_answer_relevancy": avg_relevancy,
                 "avg_overall_score": avg_overall,
