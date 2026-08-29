@@ -69,7 +69,7 @@ mcp_servers:
     description: RAG Doctor MCP server providing health inspection, retrieval diagnostics, and eval reports.
 
 # ----------------------------------------------------
-# 4. Agent Spec (RAG Doctor Orchestrator)
+# 4. Agent Spec (RAG Doctor Orchestrator & Subagents)
 # ----------------------------------------------------
 agent:
   name: rag-doctor
@@ -80,10 +80,13 @@ agent:
     You are RAG Doctor 🩺, an autonomous self-healing RAG pipeline agent.
     Your workflow:
     1. Inspect pipeline health using `inspect_rag_health` from the RAG Doctor MCP server.
-    2. If health is DEGRADED, diagnose the root cause from failing queries and chunk parameters.
-    3. Formulate a remediation hypothesis and execute the re-chunking/re-indexing fix in the Daytona sandbox.
-    4. Re-evaluate the candidate index in the sandbox.
-    5. Present before/after scores to the human user and request approval before promoting the candidate.
+    2. If health is DEGRADED, delegate the investigation to the Diagnose subagent using `create_sub_agent`:
+       - Subagent name: `diagnose`
+       - Task input: "Investigate pipeline degradation for active index. Analyze failing queries, retrieve configurations, and output the root cause diagnosis JSON."
+    3. Review the returned diagnosis JSON (`suspected_cause`, `evidence`, `confidence`, `hypothesis`, `recommended_experiment`).
+    4. Formulate a concrete remediation plan based on the diagnosis and execute the re-chunking/re-indexing fix inside the Daytona sandbox.
+    5. Re-evaluate the candidate index in the sandbox.
+    6. Present before/after scores, diagnosis, and evidence to the human user, and request approval before promoting the candidate.
   config:
     sandbox:
       enabled: true
@@ -99,3 +102,92 @@ agent:
         enabled: true
   mcp_servers:
     - name: rag-doctor-mcp
+
+subagents:
+  - name: diagnose
+    model:
+      provider: google-gemini
+      name: gemini-2-5-flash
+    instructions: |
+      You are the Diagnose Subagent for RAG Doctor.
+      Your mission is to determine the most likely root cause of RAG pipeline degradation from empirical evidence.
+
+      You have read-only access to the RAG Doctor MCP server tools:
+      - `inspect_rag_health`: view active vs baseline health and score degradation.
+      - `get_pipeline_config`: inspect chunk size, overlap, top_k, and embedding model parameters.
+      - `get_failed_queries`: inspect failing questions, ground truth answers, generated answers, and retrieved chunks.
+      - `inspect_retrieval`: run ad-hoc retrieval queries against specific index versions.
+      - `get_evaluation_results`: retrieve overall faithfulness and answer relevancy metrics.
+
+      Guidelines:
+      - Gather evidence from multiple MCP tools before reaching a conclusion.
+      - Compare the active degraded configuration with the baseline configuration.
+      - Inspect the retrieved chunks of failing queries for truncation, missing context, or low top_k counts.
+      - Do not guess or assume any pre-conceived defect; base your diagnosis strictly on observed data.
+      - State uncertainty where evidence is partial or ambiguous.
+      - You are strictly read-only. Do not attempt to modify files, indexes, or configurations.
+
+      Allowed suspected causes:
+      - chunking problem
+      - retrieval problem
+      - embedding problem
+      - indexing problem
+      - metadata/context problem
+      - generation problem
+      - evaluation/data problem
+    response_format:
+      type: json_schema
+      json_schema:
+        name: rag_diagnosis
+        description: Structured root cause diagnosis for RAG pipeline degradation
+        strict: true
+        schema:
+          type: object
+          properties:
+            suspected_cause:
+              type: string
+              enum:
+                - chunking problem
+                - retrieval problem
+                - embedding problem
+                - indexing problem
+                - metadata/context problem
+                - generation problem
+                - evaluation/data problem
+            evidence:
+              type: string
+            confidence:
+              type: number
+              minimum: 0.0
+              maximum: 1.0
+            hypothesis:
+              type: string
+            recommended_experiment:
+              type: string
+          required:
+            - suspected_cause
+            - evidence
+            - confidence
+            - hypothesis
+            - recommended_experiment
+          additionalProperties: false
+    config:
+      sandbox:
+        enabled: false
+      dynamic_sub_agents:
+        enabled: false
+      ask_user_questions:
+        enabled: false
+      context_management:
+        compaction:
+          enabled: true
+        large_tool_response:
+          enabled: true
+    mcp_servers:
+      - name: rag-doctor-mcp
+        enable_tools:
+          - inspect_rag_health
+          - get_evaluation_results
+          - get_failed_queries
+          - inspect_retrieval
+          - get_pipeline_config

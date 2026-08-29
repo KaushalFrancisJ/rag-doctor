@@ -214,15 +214,84 @@ def configure_mcp_server(base_url: str, mcp_url: str = "http://127.0.0.1:8000/ss
         return False
 
 
+def configure_agents(base_url: str, config_path: str | Path | None = None) -> bool:
+    """Register RAG Doctor orchestrator and diagnose subagent from trueforge.yaml."""
+    print("\n[4/4] Registering RAG Doctor Orchestrator & Diagnose Subagent...")
+    cfg_path = resolve_path(config_path or "trueforge.yaml")
+    if not cfg_path.exists():
+        print(f"⚠️  Config file not found at {cfg_path}. Skipping agent registration.")
+        return True
+
+    try:
+        import yaml
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+
+        # 1. Register main orchestrator
+        agent_spec = data.get("agent")
+        if agent_spec:
+            agent_name = agent_spec.get("name", "rag-doctor")
+            payload = {
+                "name": agent_name,
+                "manifest": {
+                    "model": {
+                        "name": agent_spec.get("model", {}).get("name", "gemini-2-5-flash")
+                    },
+                    "instructions": agent_spec.get("instructions", "").strip(),
+                    "mcp_servers": [
+                        {"name": s.get("name")} if isinstance(s, dict) else {"name": s}
+                        for s in agent_spec.get("mcp_servers", [])
+                    ],
+                    "config": agent_spec.get("config", {})
+                }
+            }
+            url = f"{base_url}/api/v1/agents"
+            status, resp = make_request(url, method="POST", data=payload)
+            if status in (200, 201, 409):
+                print(f"✅ Agent '{agent_name}' registered successfully.")
+            else:
+                print(f"⚠️  Agent '{agent_name}' registration response ({status}): {resp}")
+
+        # 2. Register subagents
+        for sub in data.get("subagents", []):
+            sub_name = sub.get("name")
+            if not sub_name:
+                continue
+            payload = {
+                "name": f"rag-doctor-{sub_name}",
+                "manifest": {
+                    "model": {
+                        "name": sub.get("model", {}).get("name", "gemini-2-5-flash")
+                    },
+                    "instructions": sub.get("instructions", "").strip(),
+                    "mcp_servers": sub.get("mcp_servers", []),
+                    "response_format": sub.get("response_format"),
+                    "config": sub.get("config", {})
+                }
+            }
+            url = f"{base_url}/api/v1/agents"
+            status, resp = make_request(url, method="POST", data=payload)
+            if status in (200, 201, 409):
+                print(f"✅ Subagent '{sub_name}' registered successfully.")
+            else:
+                print(f"⚠️  Subagent '{sub_name}' registration response ({status}): {resp}")
+
+        return True
+    except Exception as e:
+        print(f"⚠️  Failed to register agents: {e}")
+        return True
+
+
 def main():
     # 1. Load .env before initializing CLI parser so environment variables populate defaults
     env_path = PROJECT_ROOT / ".env"
     load_env(env_path)
 
-    parser = argparse.ArgumentParser(description="Configure TrueForge with Google Gemini and Daytona Sandbox.")
+    parser = argparse.ArgumentParser(description="Configure TrueForge with Google Gemini, Daytona Sandbox, and RAG Doctor Agents.")
     parser.add_argument("--host", default=os.getenv("TRUEFORGE_HOST", "http://localhost:8790"), help="TrueForge base URL")
     parser.add_argument("--mcp-url", default=os.getenv("MCP_SERVER_URL", "http://127.0.0.1:8000/sse"), help="RAG Doctor MCP server SSE endpoint URL")
     parser.add_argument("--model-catalog", default=os.getenv("MODEL_CATALOG_PATH", "./trueforge-models.yaml"), help="Path to model catalog YAML")
+    parser.add_argument("--config-path", default=os.getenv("TRUEFORGE_CONFIG_PATH", "./trueforge.yaml"), help="Path to trueforge.yaml")
     parser.add_argument("--wait-timeout", type=int, default=30, help="Seconds to wait for TrueForge server readiness")
     args = parser.parse_args()
 
@@ -248,6 +317,9 @@ def main():
 
     # 3. MCP Server
     results.append(("RAG Doctor MCP Server", configure_mcp_server(args.host, mcp_url)))
+
+    # 4. Agents & Subagents
+    results.append(("RAG Doctor Agents", configure_agents(args.host, config_path=args.config_path)))
 
     # Evaluate results
     failures = [name for name, success in results if not success]

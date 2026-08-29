@@ -79,7 +79,7 @@ def validate_diagnosis(data: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(data, dict):
         raise ValueError(f"Expected diagnosis data to be a dictionary, got {type(data).__name__}")
 
-    required_keys = {"suspected_cause", "evidence", "confidence", "recommended_experiment"}
+    required_keys = {"suspected_cause", "evidence", "confidence", "hypothesis", "recommended_experiment"}
     missing = required_keys - set(data.keys())
     if missing:
         raise ValueError(f"Diagnosis missing required keys: {missing}")
@@ -99,6 +99,10 @@ def validate_diagnosis(data: Dict[str, Any]) -> Dict[str, Any]:
     if not evidence:
         raise ValueError("Diagnosis 'evidence' must not be empty.")
 
+    hypothesis = str(data.get("hypothesis", "")).strip()
+    if not hypothesis:
+        raise ValueError("Diagnosis 'hypothesis' must not be empty.")
+
     try:
         confidence = float(data["confidence"])
     except (TypeError, ValueError):
@@ -115,6 +119,7 @@ def validate_diagnosis(data: Dict[str, Any]) -> Dict[str, Any]:
         "suspected_cause": cause,
         "evidence": evidence,
         "confidence": confidence,
+        "hypothesis": hypothesis,
         "recommended_experiment": recommended_exp,
     }
 

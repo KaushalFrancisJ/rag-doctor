@@ -287,11 +287,13 @@ def test_validate_diagnosis_valid_and_categories():
         "suspected_cause": "chunking problem",
         "evidence": "Chunks cut off mid-sentence with size 70.",
         "confidence": 0.95,
+        "hypothesis": "Small chunk size fragments context preventing proper grounding.",
         "recommended_experiment": "increase chunk_size to 500",
     }
     validated = validate_diagnosis(valid_payload)
     assert validated["suspected_cause"] == "chunking problem"
     assert validated["confidence"] == 0.95
+    assert validated["hypothesis"] == "Small chunk size fragments context preventing proper grounding."
 
 
 def test_validate_diagnosis_invalid():
@@ -303,6 +305,7 @@ def test_validate_diagnosis_invalid():
             "suspected_cause": "unknown mystery problem",
             "evidence": "no idea",
             "confidence": 0.5,
+            "hypothesis": "unknown",
             "recommended_experiment": "try something",
         })
 
@@ -316,6 +319,7 @@ def test_validate_diagnosis_invalid():
             "suspected_cause": "retrieval problem",
             "evidence": "too low top_k",
             "confidence": 1.5,
+            "hypothesis": "insufficient chunks retrieved",
             "recommended_experiment": "increase top_k",
         })
 
