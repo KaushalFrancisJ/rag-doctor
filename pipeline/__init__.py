@@ -18,16 +18,17 @@ class RAGPipeline:
     def __init__(
         self,
         index_dir: str | Path = "indexes/v001",
-        top_k: int = 3,
+        top_k: Optional[int] = None,
         generator: Optional[Generator] = None,
     ):
         self.index = VectorIndex.load(index_dir)
         self.embedder = Embedder(
             model_name=self.index.config.get("embedding_model", "all-MiniLM-L6-v2")
         )
-        self.retriever = Retriever(index=self.index, embedder=self.embedder, default_top_k=top_k)
+        effective_top_k = top_k if top_k is not None else int(self.index.config.get("top_k", 3))
+        self.retriever = Retriever(index=self.index, embedder=self.embedder, default_top_k=effective_top_k)
         self.generator = generator or Generator()
-        self.top_k = top_k
+        self.top_k = effective_top_k
 
     def query(self, question: str, top_k: Optional[int] = None) -> Dict[str, Any]:
         """Retrieve context and generate an answer for a user question."""

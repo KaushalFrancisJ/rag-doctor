@@ -162,3 +162,71 @@ def test_generator_prompt_building():
     assert "FastAPI is fast." in prompt
     assert "features.md" in prompt
     assert "dependencies.md" in prompt
+
+
+def test_retriever_top_k_from_config(tmp_path: Path):
+    class MockEmbedder:
+        model_name = "mock-model"
+        def embed_texts(self, texts, **kwargs):
+            return np.ones((len(texts), 4), dtype=np.float32)
+        def embed_query(self, query):
+            return np.ones((4,), dtype=np.float32)
+        @property
+        def dimension(self):
+            return 4
+
+    chunks = [
+        Chunk(id="c1", content="Chunk 1", metadata={}),
+        Chunk(id="c2", content="Chunk 2", metadata={}),
+        Chunk(id="c3", content="Chunk 3", metadata={}),
+    ]
+
+    index_dir = tmp_path / "top_k_test"
+    index = VectorIndex.build(
+        chunks=chunks,
+        embedder=MockEmbedder(),
+        save_dir=index_dir,
+        version="v_test_k",
+        top_k=1,
+    )
+
+    loaded_index = VectorIndex.load(index_dir)
+    assert loaded_index.config["top_k"] == 1
+
+    retriever = Retriever(index=loaded_index, embedder=MockEmbedder())
+    assert retriever.default_top_k == 1
+
+    results = retriever.retrieve("query")
+    assert len(results) == 1
+
+
+def test_mcp_tools_v003_retrieval_sick():
+    from mcp_server import inspect_rag_health, get_pipeline_config, get_evaluation_results, get_failed_queries
+
+    # Inspect health with explicit version
+    health_raw = inspect_rag_health("v003_retrieval_sick")
+    health = json.loads(health_raw)
+    assert health["active_monitored_index"] == "v003_retrieval_sick"
+    assert health["status"] == "DEGRADED"
+    assert health["failing_queries_count"] > 0
+
+    # Config
+    cfg_raw = get_pipeline_config("v003_retrieval_sick")
+    cfg = json.loads(cfg_raw)
+    assert cfg["version"] == "v003_retrieval_sick"
+    assert cfg["top_k"] == 1
+    assert cfg["chunk_size"] == 500
+    assert cfg["overlap"] == 100
+
+    # Eval results
+    eval_raw = get_evaluation_results("v003_retrieval_sick")
+    eval_summary = json.loads(eval_raw)
+    assert eval_summary["index_version"] == "v003_retrieval_sick"
+    assert eval_summary["is_degraded"] is True
+
+    # Failed queries
+    failed_raw = get_failed_queries("v003_retrieval_sick")
+    failed = json.loads(failed_raw)
+    assert len(failed) > 0
+    assert all(len(q["retrieved_chunks"]) == 1 for q in failed)
+

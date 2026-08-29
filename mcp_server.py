@@ -141,7 +141,7 @@ def get_failed_queries(index_version: str = "") -> str:
         return f"Error reading failing queries: {e}"
 
 @mcp.tool()
-def inspect_retrieval(query: str, index_version: str = "", top_k: int = 3) -> str:
+def inspect_retrieval(query: str, index_version: str = "", top_k: int = 0) -> str:
     """
     Run retrieval for a specific query against a specific index version.
     Defaults to the currently active index version if not specified.
@@ -155,8 +155,9 @@ def inspect_retrieval(query: str, index_version: str = "", top_k: int = 3) -> st
 
     try:
         index = VectorIndex.load(index_dir)
-        retriever = Retriever(index=index, default_top_k=top_k)
-        chunks = retriever.retrieve(query, top_k=top_k)
+        effective_k = top_k if top_k > 0 else int(index.config.get("top_k", 3))
+        retriever = Retriever(index=index, default_top_k=effective_k)
+        chunks = retriever.retrieve(query, top_k=effective_k)
         return json.dumps(chunks, indent=2)
     except Exception as e:
         return f"Error inspecting retrieval: {e}"

@@ -207,7 +207,7 @@ class Judge:
         eval_set_path: str | Path,
         threshold: float = DEFAULT_THRESHOLD,
         output_path: Optional[str | Path] = None,
-        top_k: int = 3,
+        top_k: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Run full evaluation suite over an evaluation dataset.
 
@@ -217,7 +217,7 @@ class Judge:
             eval_set_path: Path to eval_set.json.
             threshold: Minimum acceptable overall score.
             output_path: Optional file path to persist evaluation results JSON.
-            top_k: Number of chunks to retrieve per query.
+            top_k: Number of chunks to retrieve per query (defaults to retriever.default_top_k).
 
         Returns:
             Structured dictionary with summary metrics and per-query results.
@@ -226,6 +226,7 @@ class Judge:
         with open(eval_path, "r", encoding="utf-8") as f:
             eval_set = json.load(f)
 
+        effective_k = top_k if top_k is not None else getattr(retriever, "default_top_k", 3)
         results: List[Dict[str, Any]] = []
         total_faithfulness = 0
         total_relevancy = 0
@@ -239,7 +240,7 @@ class Judge:
             expected = item.get("expected_answer")
 
             # 1. Retrieve
-            chunks = retriever.retrieve(query, top_k=top_k)
+            chunks = retriever.retrieve(query, top_k=effective_k)
 
             # 2. Generate
             gen_result = generator.generate(query, chunks)
@@ -253,7 +254,11 @@ class Judge:
                 expected_answer=expected,
             )
 
-            passed = judge_result["overall_score"] >= threshold
+            passed = (
+                judge_result["overall_score"] >= threshold
+                and judge_result["faithfulness"] >= 3
+                and judge_result["answer_relevancy"] >= 3
+            )
 
             query_result = {
                 "id": query_id,
@@ -323,13 +328,14 @@ def evaluate_index(
     eval_set_path: str | Path = "eval/eval_set.json",
     threshold: float = DEFAULT_THRESHOLD,
     output_path: Optional[str | Path] = None,
-    top_k: int = 3,
+    top_k: Optional[int] = None,
     generator_model: Optional[str] = None,
     judge_model: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Convenience function to evaluate an index directory against an evaluation set."""
     index = VectorIndex.load(index_dir)
-    retriever = Retriever(index=index, default_top_k=top_k)
+    effective_top_k = top_k if top_k is not None else int(index.config.get("top_k", 3))
+    retriever = Retriever(index=index, default_top_k=effective_top_k)
     generator = Generator(model_name=generator_model)
     judge = Judge(model_name=judge_model)
 
@@ -339,7 +345,7 @@ def evaluate_index(
         eval_set_path=eval_set_path,
         threshold=threshold,
         output_path=output_path,
-        top_k=top_k,
+        top_k=effective_top_k,
     )
 
 
@@ -349,7 +355,7 @@ def main():
     parser.add_argument("--eval-set", default="eval/eval_set.json", help="Path to evaluation dataset")
     parser.add_argument("--output", default=None, help="Path to save evaluation report JSON")
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD, help="Degradation score threshold (1-5)")
-    parser.add_argument("--top-k", type=int, default=3, help="Number of chunks to retrieve")
+    parser.add_argument("--top-k", type=int, default=None, help="Number of chunks to retrieve (default: from index config or 3)")
     parser.add_argument("--generator-model", default=None, help="Groq model for generator (default: from env or DEFAULT_GROQ_MODEL)")
     parser.add_argument("--judge-model", default=None, help="Groq model for judge (default: from env or DEFAULT_JUDGE_MODEL)")
     args = parser.parse_args()

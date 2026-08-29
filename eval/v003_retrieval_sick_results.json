@@ -1,0 +1,857 @@
+{
+  "summary": {
+    "index_version": "v003_retrieval_sick",
+    "evaluated_at": "2026-08-29T12:21:33.087290+00:00",
+    "judge_model": "openai/gpt-oss-120b",
+    "generator_model": "openai/gpt-oss-120b",
+    "total_queries": 20,
+    "avg_faithfulness": 4.7,
+    "avg_answer_relevancy": 3.8,
+    "avg_overall_score": 4.25,
+    "threshold": 3.5,
+    "passing_count": 13,
+    "failing_count": 7,
+    "is_degraded": true
+  },
+  "failing_queries": [
+    {
+      "id": "eval_002",
+      "topic": "background_tasks",
+      "question": "Can background tasks in FastAPI access dependencies or be injected through sub-dependencies?",
+      "expected_answer": "Yes, BackgroundTasks can be declared in path operation functions or inside dependency functions (using Depends). When declared in a dependency, background tasks added to the instance will still be executed after the response is sent.",
+      "generated_answer": "The provided documentation excerpt does not address whether background tasks can receive FastAPI dependencies or be injected through sub‑dependencies. It only mentions using `BackgroundTask` directly and returning a Starlette `Response`. Therefore, based on the given context, there is no information to confirm that background tasks can access dependencies or be injected via sub‑dependencies.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/background-tasks.md#chunk_0009",
+          "content": "est for you, just like when using the `Request` object directly.\n\nIt's still possible to use `BackgroundTask` alone in FastAPI, but you have to create the object in your code and return a Starlette `Response` including it.\n\nYou can see more details in [Starlette's official docs for Background Tasks](https://starlette.dev/background/).\n\n## Caveat { #caveat }\n\nIf you need to perform heavy background computation and you don't necessarily need it to be run by the same process (for example, you don't",
+          "score": 0.7141440510749817,
+          "metadata": {
+            "source": "corpus/active/tutorial/background-tasks.md",
+            "relative_path": "tutorial/background-tasks.md",
+            "filename": "background-tasks.md",
+            "doc_id": "tutorial/background-tasks.md",
+            "chunk_index": 9,
+            "start_char": 3600,
+            "end_char": 4100,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer accurately reflects that the provided context excerpt contains no mention of dependencies or sub‑dependencies for BackgroundTask, so it does not introduce unsupported claims.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "While it acknowledges the question, it merely states the context lacks the information and does not answer whether background tasks can access dependencies, thus it fails to directly address the user's query.",
+      "overall_score": 3.5,
+      "passed": false
+    },
+    {
+      "id": "eval_003",
+      "topic": "middleware",
+      "question": "How do you create custom HTTP middleware in FastAPI to measure request execution time and attach it as a header?",
+      "expected_answer": "Use the @app.middleware('http') decorator on an async function that takes request: Request and call_next. Record the start time using time.time(), await the response with call_next(request), compute process_time = time.time() - start_time, set a custom header like response.headers['X-Process-Time'] = str(process_time), and return the response.",
+      "generated_answer": "The provided documentation only explains that FastAPI supports middleware and describes its general behavior, but it does not include details on how to implement a custom HTTP middleware that measures request execution time or adds a header to the response. Therefore, the specific steps and code for creating such middleware cannot be derived from the given context.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/middleware.md#chunk_0000",
+          "content": "# Middleware { #middleware }\n\nYou can add middleware to **FastAPI** applications.\n\nA \"middleware\" is a function that works with every **request** before it is processed by any specific *path operation*. And also with every **response** before returning it.\n\n* It takes each **request** that comes to your application.\n* It can then do something to that **request** or run any needed code.\n* Then it passes the **request** to be processed by the rest of the application (by some *path operation*).\n* I",
+          "score": 0.7022033929824829,
+          "metadata": {
+            "source": "corpus/active/tutorial/middleware.md",
+            "relative_path": "tutorial/middleware.md",
+            "filename": "middleware.md",
+            "doc_id": "tutorial/middleware.md",
+            "chunk_index": 0,
+            "start_char": 0,
+            "end_char": 500,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer correctly states that the provided context only describes middleware generally and does not contain the specific implementation details for measuring execution time, which matches the content of the retrieved chunk.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "The response does not provide the requested instructions for creating custom HTTP middleware; it merely notes the lack of detail in the context, thus failing to answer the user's question.",
+      "overall_score": 3.5,
+      "passed": false
+    },
+    {
+      "id": "eval_006",
+      "topic": "dependencies",
+      "question": "How do you declare a dependency in a FastAPI path operation function?",
+      "expected_answer": "You declare a function parameter with a default value of Depends(dependency_callable), where dependency_callable is a function or class that returns the desired value or resource.",
+      "generated_answer": "The provided excerpt does not include the specific syntax for declaring a dependency in a FastAPI path operation function. It only gives a general description of the dependency‑injection system but does not show how to use `Depends` in a function signature. Therefore, the documentation snippet you shared does not contain enough information to answer the question.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/dependencies/index.md#chunk_0017",
+          "content": "e, **FastAPI**).\n\nWith the Dependency Injection system, you can also tell **FastAPI** that your *path operation function* also \"depends\" on something else that should be executed before your *path operation function*, and **FastAPI** will take care of executing it and \"injecting\" the results.\n\nOther common terms for this same idea of \"dependency injection\" are:\n\n* resources\n* providers\n* services\n* injectables\n* components\n\n## **FastAPI** plug-ins { #fastapi-plug-ins }\n\nIntegrations and \"plug-in",
+          "score": 0.7169853448867798,
+          "metadata": {
+            "source": "corpus/active/tutorial/dependencies/index.md",
+            "relative_path": "tutorial/dependencies/index.md",
+            "filename": "index.md",
+            "doc_id": "tutorial/dependencies/index.md",
+            "chunk_index": 17,
+            "start_char": 6800,
+            "end_char": 7300,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer accurately notes that the retrieved excerpt does not include the specific syntax for declaring a dependency, which matches the content of the context.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "The response does not provide the requested way to declare a dependency and only comments on the missing information, so it does not directly answer the user's question.",
+      "overall_score": 3.5,
+      "passed": false
+    },
+    {
+      "id": "eval_015",
+      "topic": "security_passwords",
+      "question": "How do you hash and verify user passwords securely in FastAPI using PassLib?",
+      "expected_answer": "Instantiate CryptContext(schemes=['bcrypt'], deprecated='auto') from passlib.context. Call pwd_context.hash(plain_password) to generate a secure password hash, and call pwd_context.verify(plain_password, hashed_password) during authentication to verify if a submitted password matches the stored hash.",
+      "generated_answer": "The provided documentation excerpt discusses using **pwdlib** for password hashing and only mentions PassLib in passing, recommending it for handling legacy hashes. It does not include any code examples or step‑by‑step instructions for hashing and verifying passwords with PassLib in FastAPI. Therefore, the FastAPI documentation you supplied does not contain enough information to answer how to hash and verify user passwords securely using PassLib.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/security/oauth2-jwt.md#chunk_0009",
+          "content": "fy-the-passwords }\n\nImport the tools we need from `pwdlib`.\n\nCreate a PasswordHash instance with recommended settings - it will be used for hashing and verifying passwords.\n\n/// tip\n\npwdlib also supports the bcrypt hashing algorithm but does not include legacy algorithms - for working with outdated hashes, it is recommended to use the passlib library.\n\nFor example, you could use it to read and verify passwords generated by another system (like Django) but hash any new passwords with a different",
+          "score": 0.6385678648948669,
+          "metadata": {
+            "source": "corpus/active/tutorial/security/oauth2-jwt.md",
+            "relative_path": "tutorial/security/oauth2-jwt.md",
+            "filename": "oauth2-jwt.md",
+            "doc_id": "tutorial/security/oauth2-jwt.md",
+            "chunk_index": 9,
+            "start_char": 3600,
+            "end_char": 4100,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer accurately reflects the retrieved context, which only mentions pwdlib and briefly notes PassLib for legacy hashes without providing hashing/verification code, so its claim of insufficient information is supported.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "The answer does not supply the requested method for hashing and verifying passwords with PassLib, merely stating the documentation lacks it, thus it fails to directly answer the user’s question.",
+      "overall_score": 3.5,
+      "passed": false
+    },
+    {
+      "id": "eval_016",
+      "topic": "security_oauth2",
+      "question": "Why does OAuth2 in FastAPI require OAuth2PasswordRequestForm to use form data instead of JSON for login?",
+      "expected_answer": "The OAuth2 specification strictly requires credential requests to be sent as form data (application/x-www-form-urlencoded) with specific field names 'username' and 'password', rather than as a JSON body. OAuth2PasswordRequestForm parses this form data to maintain full compliance with the OAuth2 standard.",
+      "generated_answer": "The provided documentation explains that `OAuth2PasswordRequestForm` is simply a convenience class that FastAPI supplies for handling form‑encoded data (it could be written manually or you could declare `Form` parameters directly). It does not discuss why the OAuth2 token endpoint in FastAPI expects form data rather than JSON. Therefore, the FastAPI documentation excerpt you shared does not contain enough information to answer why OAuth2 in FastAPI requires `OAuth2PasswordRequestForm` to use form data instead of JSON for login.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/security/simple-oauth2.md#chunk_0007",
+          "content": "for our example).\n\n/// note\n\nThe `OAuth2PasswordRequestForm` is not a special class for **FastAPI** as is `OAuth2PasswordBearer`.\n\n`OAuth2PasswordBearer` makes **FastAPI** know that it is a security scheme. So it is added that way to OpenAPI.\n\nBut `OAuth2PasswordRequestForm` is just a class dependency that you could have written yourself, or you could have declared `Form` parameters directly.\n\nBut as it's a common use case, it is provided by **FastAPI** directly, just to make it easier.\n\n///\n\n##",
+          "score": 0.702133297920227,
+          "metadata": {
+            "source": "corpus/active/tutorial/security/simple-oauth2.md",
+            "relative_path": "tutorial/security/simple-oauth2.md",
+            "filename": "simple-oauth2.md",
+            "doc_id": "tutorial/security/simple-oauth2.md",
+            "chunk_index": 7,
+            "start_char": 2800,
+            "end_char": 3300,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer accurately reflects the retrieved context, stating that OAuth2PasswordRequestForm is a convenience class and that the excerpt does not explain why form data is required; all claims are directly supported by the provided text.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "The answer does not address the core question of why OAuth2 requires form data instead of JSON; it merely notes the lack of information in the context, providing no explanatory answer.",
+      "overall_score": 3.5,
+      "passed": false
+    },
+    {
+      "id": "eval_018",
+      "topic": "features_docs",
+      "question": "What are the two automatic interactive API documentation interfaces provided out of the box by FastAPI?",
+      "expected_answer": "FastAPI provides Swagger UI (available by default at /docs for interactive exploration and calling of endpoints) and ReDoc (available by default at /redoc for clean responsive documentation), both generated automatically from the OpenAPI schema.",
+      "generated_answer": "The provided documentation excerpt does not specify the names of the two automatic interactive API documentation interfaces that FastAPI includes out of the box. Therefore, based on the given context, I cannot determine the answer.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/security/index.md#chunk_0011",
+          "content": "I using those tools provided by **FastAPI**.\n\nAnd you will also see how it gets automatically integrated into the interactive documentation system.",
+          "score": 0.8268275260925293,
+          "metadata": {
+            "source": "corpus/active/tutorial/security/index.md",
+            "relative_path": "tutorial/security/index.md",
+            "filename": "index.md",
+            "doc_id": "tutorial/security/index.md",
+            "chunk_index": 11,
+            "start_char": 4400,
+            "end_char": 4547,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer correctly states that the provided context does not mention the names of the documentation interfaces, which aligns with the retrieved excerpt.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "While the answer acknowledges the question, it fails to provide the requested information about the two interfaces, offering no substantive answer.",
+      "overall_score": 3.5,
+      "passed": false
+    },
+    {
+      "id": "eval_020",
+      "topic": "api_reference",
+      "question": "What parameters of the FastAPI application class allow you to customize or disable the automatic OpenAPI docs URL routes?",
+      "expected_answer": "The FastAPI class provides 'docs_url' (to change or disable the Swagger UI route by setting it to None), 'redoc_url' (to change or disable the ReDoc route by setting it to None), and 'openapi_url' (to configure or disable the OpenAPI JSON schema endpoint).",
+      "generated_answer": "The provided documentation excerpt does not include information about the parameters of the **FastAPI** application class that control or disable the automatic OpenAPI documentation URL routes. Therefore, based on the given context, I cannot answer that question.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/bigger-applications.md#chunk_0042",
+          "content": "l detail that you probably can **just skip**.\n\n---\n\nThe `APIRouter`s are not \"mounted\", they are not isolated from the rest of the application.\n\nThis is because we want to include their *path operations* in the OpenAPI schema and the user interfaces.\n\nFastAPI keeps the original routers and path operations active, and combines the router prefixes, dependencies, tags, responses, and other metadata when handling requests and generating OpenAPI.\n\n///\n\n## Configure the `entrypoint` in `pyproject.toml",
+          "score": 0.6794813871383667,
+          "metadata": {
+            "source": "corpus/active/tutorial/bigger-applications.md",
+            "relative_path": "tutorial/bigger-applications.md",
+            "filename": "bigger-applications.md",
+            "doc_id": "tutorial/bigger-applications.md",
+            "chunk_index": 42,
+            "start_char": 16800,
+            "end_char": 17300,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer correctly states that the retrieved context does not contain information about FastAPI parameters for OpenAPI docs, which matches the provided excerpt.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "While the response acknowledges the question, it does not provide the requested parameters, offering only that the information is absent, thus it fails to answer the user's query.",
+      "overall_score": 3.5,
+      "passed": false
+    }
+  ],
+  "results": [
+    {
+      "id": "eval_001",
+      "topic": "background_tasks",
+      "question": "How do you schedule a background task in FastAPI, and when does it execute relative to the HTTP response?",
+      "expected_answer": "You import BackgroundTasks and declare it as a parameter in your path operation function. Inside the function, you call background_tasks.add_task(func, *args, **kwargs) passing your task function and arguments. FastAPI executes the background task after sending the HTTP response back to the client.",
+      "generated_answer": "In FastAPI you schedule a background job by creating a **`BackgroundTask`** (or using the `BackgroundTasks` dependency) and attaching it to the response that you return.  \n\n```python\nfrom fastapi import FastAPI, BackgroundTasks\nfrom starlette.responses import Response\n\napp = FastAPI()\n\ndef write_log(message: str):\n    with open(\"log.txt\", \"a\") as f:\n        f.write(message + \"\\n\")\n\n@app.post(\"/items/\")\nasync def create_item(background_tasks: BackgroundTasks):\n    # schedule the function to run later\n    background_tasks.add_task(write_log, \"item created\")\n    return {\"msg\": \"item accepted\"}          # the response is sent immediately\n```\n\nor, using the lower‑level `BackgroundTask` directly:\n\n```python\nfrom starlette.background import BackgroundTask\nfrom starlette.responses import JSONResponse\n\n@app.post(\"/legacy/\")\ndef legacy_endpoint():\n    task = BackgroundTask(write_log, \"legacy call\")\n    return JSONResponse({\"msg\": \"ok\"}, background=task)\n```\n\n**When does it run?**  \nThe background task is executed **after the HTTP response has been sent to the client**. FastAPI (via Starlette) queues the task once the response is returned, so the client receives the response first, and the background work proceeds in the same process thereafter. This behavior is noted in the documentation: you must return a Starlette `Response` that includes the `BackgroundTask`, and the task runs after the response is delivered.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/background-tasks.md#chunk_0009",
+          "content": "est for you, just like when using the `Request` object directly.\n\nIt's still possible to use `BackgroundTask` alone in FastAPI, but you have to create the object in your code and return a Starlette `Response` including it.\n\nYou can see more details in [Starlette's official docs for Background Tasks](https://starlette.dev/background/).\n\n## Caveat { #caveat }\n\nIf you need to perform heavy background computation and you don't necessarily need it to be run by the same process (for example, you don't",
+          "score": 0.7268667817115784,
+          "metadata": {
+            "source": "corpus/active/tutorial/background-tasks.md",
+            "relative_path": "tutorial/background-tasks.md",
+            "filename": "background-tasks.md",
+            "doc_id": "tutorial/background-tasks.md",
+            "chunk_index": 9,
+            "start_char": 3600,
+            "end_char": 4100,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 3,
+      "faithfulness_reasoning": "The answer correctly describes using BackgroundTasks and BackgroundTask as mentioned in the context, but adds the claim that the task runs after the HTTP response, which is not stated in the retrieved snippet, making that part unsupported.",
+      "answer_relevancy": 5,
+      "relevancy_reasoning": "The response directly explains how to schedule a background task in FastAPI and clearly states when it executes, fully addressing both parts of the user question.",
+      "overall_score": 4.0,
+      "passed": true
+    },
+    {
+      "id": "eval_002",
+      "topic": "background_tasks",
+      "question": "Can background tasks in FastAPI access dependencies or be injected through sub-dependencies?",
+      "expected_answer": "Yes, BackgroundTasks can be declared in path operation functions or inside dependency functions (using Depends). When declared in a dependency, background tasks added to the instance will still be executed after the response is sent.",
+      "generated_answer": "The provided documentation excerpt does not address whether background tasks can receive FastAPI dependencies or be injected through sub‑dependencies. It only mentions using `BackgroundTask` directly and returning a Starlette `Response`. Therefore, based on the given context, there is no information to confirm that background tasks can access dependencies or be injected via sub‑dependencies.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/background-tasks.md#chunk_0009",
+          "content": "est for you, just like when using the `Request` object directly.\n\nIt's still possible to use `BackgroundTask` alone in FastAPI, but you have to create the object in your code and return a Starlette `Response` including it.\n\nYou can see more details in [Starlette's official docs for Background Tasks](https://starlette.dev/background/).\n\n## Caveat { #caveat }\n\nIf you need to perform heavy background computation and you don't necessarily need it to be run by the same process (for example, you don't",
+          "score": 0.7141440510749817,
+          "metadata": {
+            "source": "corpus/active/tutorial/background-tasks.md",
+            "relative_path": "tutorial/background-tasks.md",
+            "filename": "background-tasks.md",
+            "doc_id": "tutorial/background-tasks.md",
+            "chunk_index": 9,
+            "start_char": 3600,
+            "end_char": 4100,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer accurately reflects that the provided context excerpt contains no mention of dependencies or sub‑dependencies for BackgroundTask, so it does not introduce unsupported claims.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "While it acknowledges the question, it merely states the context lacks the information and does not answer whether background tasks can access dependencies, thus it fails to directly address the user's query.",
+      "overall_score": 3.5,
+      "passed": false
+    },
+    {
+      "id": "eval_003",
+      "topic": "middleware",
+      "question": "How do you create custom HTTP middleware in FastAPI to measure request execution time and attach it as a header?",
+      "expected_answer": "Use the @app.middleware('http') decorator on an async function that takes request: Request and call_next. Record the start time using time.time(), await the response with call_next(request), compute process_time = time.time() - start_time, set a custom header like response.headers['X-Process-Time'] = str(process_time), and return the response.",
+      "generated_answer": "The provided documentation only explains that FastAPI supports middleware and describes its general behavior, but it does not include details on how to implement a custom HTTP middleware that measures request execution time or adds a header to the response. Therefore, the specific steps and code for creating such middleware cannot be derived from the given context.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/middleware.md#chunk_0000",
+          "content": "# Middleware { #middleware }\n\nYou can add middleware to **FastAPI** applications.\n\nA \"middleware\" is a function that works with every **request** before it is processed by any specific *path operation*. And also with every **response** before returning it.\n\n* It takes each **request** that comes to your application.\n* It can then do something to that **request** or run any needed code.\n* Then it passes the **request** to be processed by the rest of the application (by some *path operation*).\n* I",
+          "score": 0.7022033929824829,
+          "metadata": {
+            "source": "corpus/active/tutorial/middleware.md",
+            "relative_path": "tutorial/middleware.md",
+            "filename": "middleware.md",
+            "doc_id": "tutorial/middleware.md",
+            "chunk_index": 0,
+            "start_char": 0,
+            "end_char": 500,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer correctly states that the provided context only describes middleware generally and does not contain the specific implementation details for measuring execution time, which matches the content of the retrieved chunk.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "The response does not provide the requested instructions for creating custom HTTP middleware; it merely notes the lack of detail in the context, thus failing to answer the user's question.",
+      "overall_score": 3.5,
+      "passed": false
+    },
+    {
+      "id": "eval_004",
+      "topic": "middleware",
+      "question": "What parameters does an @app.middleware('http') function receive, and what type of object must it return?",
+      "expected_answer": "An HTTP middleware function receives two parameters: 'request' (the incoming Request object) and 'call_next' (a function that passes the request to the next handler or path operation). It must return a Response object.",
+      "generated_answer": "An `@app.middleware('http')` function is called with **one argument – the `request` object** (a FastAPI/Starlette `Request`).  \nIt must **return a response object** – the `Response` (or any object that FastAPI can treat as a response) produced by the underlying path operation, optionally after you modify it.  \n\n*From the documentation*: the middleware “will receive the `request` as a parameter… then it returns the `response` generated by the corresponding *path operation*… you can further modify the `response` before returning it.”",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/middleware.md#chunk_0003",
+          "content": "that will receive the `request` as a parameter.\n    * This function will pass the `request` to the corresponding *path operation*.\n    * Then it returns the `response` generated by the corresponding *path operation*.\n* You can then further modify the `response` before returning it.\n\n{* ../../docs_src/middleware/tutorial001_py310.py hl[8:9,11,14] *}\n\n/// tip\n\nKeep in mind that custom proprietary headers can be added [using the `X-` prefix](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers",
+          "score": 0.5955232381820679,
+          "metadata": {
+            "source": "corpus/active/tutorial/middleware.md",
+            "relative_path": "tutorial/middleware.md",
+            "filename": "middleware.md",
+            "doc_id": "tutorial/middleware.md",
+            "chunk_index": 3,
+            "start_char": 1200,
+            "end_char": 1700,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer states the middleware receives the request object and returns a response, which is directly supported by the retrieved context. No unsupported claims are made.",
+      "answer_relevancy": 5,
+      "relevancy_reasoning": "The answer directly addresses both parts of the question: the parameter(s) received (request) and the required return type (Response), providing a complete and concise response.",
+      "overall_score": 5.0,
+      "passed": true
+    },
+    {
+      "id": "eval_005",
+      "topic": "dependencies",
+      "question": "How does FastAPI handle dependency sharing and caching when multiple sub-dependencies depend on the same parent dependency?",
+      "expected_answer": "By default, FastAPI caches the result of a dependency call for the duration of a single request. If multiple sub-dependencies or route handlers depend on the same dependency in a request, FastAPI runs it only once and reuses the return value, unless use_cache=False is explicitly specified in Depends.",
+      "generated_answer": "The provided documentation excerpt only introduces the concept of dependency injection in FastAPI and lists some alternative terms for it. It does not contain details about how FastAPI shares or caches dependencies when multiple sub‑dependencies rely on the same parent dependency. Therefore, based on the given context, there isn’t enough information to answer the question.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/dependencies/index.md#chunk_0017",
+          "content": "e, **FastAPI**).\n\nWith the Dependency Injection system, you can also tell **FastAPI** that your *path operation function* also \"depends\" on something else that should be executed before your *path operation function*, and **FastAPI** will take care of executing it and \"injecting\" the results.\n\nOther common terms for this same idea of \"dependency injection\" are:\n\n* resources\n* providers\n* services\n* injectables\n* components\n\n## **FastAPI** plug-ins { #fastapi-plug-ins }\n\nIntegrations and \"plug-in",
+          "score": 0.5359389781951904,
+          "metadata": {
+            "source": "corpus/active/tutorial/dependencies/index.md",
+            "relative_path": "tutorial/dependencies/index.md",
+            "filename": "index.md",
+            "doc_id": "tutorial/dependencies/index.md",
+            "chunk_index": 17,
+            "start_char": 6800,
+            "end_char": 7300,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer accurately reflects that the provided context does not contain information about FastAPI's dependency caching, and it does not introduce unsupported claims.",
+      "answer_relevancy": 3,
+      "relevancy_reasoning": "The response addresses the user's query by stating the context is insufficient, but it fails to provide the actual explanation of caching behavior, thus missing key information.",
+      "overall_score": 4.0,
+      "passed": true
+    },
+    {
+      "id": "eval_006",
+      "topic": "dependencies",
+      "question": "How do you declare a dependency in a FastAPI path operation function?",
+      "expected_answer": "You declare a function parameter with a default value of Depends(dependency_callable), where dependency_callable is a function or class that returns the desired value or resource.",
+      "generated_answer": "The provided excerpt does not include the specific syntax for declaring a dependency in a FastAPI path operation function. It only gives a general description of the dependency‑injection system but does not show how to use `Depends` in a function signature. Therefore, the documentation snippet you shared does not contain enough information to answer the question.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/dependencies/index.md#chunk_0017",
+          "content": "e, **FastAPI**).\n\nWith the Dependency Injection system, you can also tell **FastAPI** that your *path operation function* also \"depends\" on something else that should be executed before your *path operation function*, and **FastAPI** will take care of executing it and \"injecting\" the results.\n\nOther common terms for this same idea of \"dependency injection\" are:\n\n* resources\n* providers\n* services\n* injectables\n* components\n\n## **FastAPI** plug-ins { #fastapi-plug-ins }\n\nIntegrations and \"plug-in",
+          "score": 0.7169853448867798,
+          "metadata": {
+            "source": "corpus/active/tutorial/dependencies/index.md",
+            "relative_path": "tutorial/dependencies/index.md",
+            "filename": "index.md",
+            "doc_id": "tutorial/dependencies/index.md",
+            "chunk_index": 17,
+            "start_char": 6800,
+            "end_char": 7300,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer accurately notes that the retrieved excerpt does not include the specific syntax for declaring a dependency, which matches the content of the context.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "The response does not provide the requested way to declare a dependency and only comments on the missing information, so it does not directly answer the user's question.",
+      "overall_score": 3.5,
+      "passed": false
+    },
+    {
+      "id": "eval_007",
+      "topic": "bigger_applications",
+      "question": "How can you group related API routes into separate files and include them in a main FastAPI app?",
+      "expected_answer": "In separate files, create an APIRouter instance and decorate endpoints with @router.get(...), @router.post(...), etc. In the main application file, import the APIRouter instance and include it using app.include_router(router), optionally configuring common prefix, tags, dependencies, or responses.",
+      "generated_answer": "You can place the routes that belong together in their own module, create an **`APIRouter`** there, register the endpoints on that router, and then add the router to the main application with **`app.include_router()`**.\n\n**Typical steps**\n\n1. **Create a separate file** (e.g., `users.py`).  \n   ```python\n   from fastapi import APIRouter\n\n   router = APIRouter()\n\n   @router.get(\"/users/\")\n   async def list_users():\n       ...\n   @router.post(\"/users/\")\n   async def create_user():\n       ...\n   ```\n\n2. **Repeat for other groups** (e.g., `items.py`, `auth.py`), each exposing its own `router`.\n\n3. **In the main app file** (e.g., `main.py`) import the routers and include them:\n   ```python\n   from fastapi import FastAPI\n   from .users import router as users_router\n   from .items import router as items_router\n\n   app = FastAPI()\n\n   app.include_router(users_router)   # adds all routes from users_router\n   app.include_router(items_router)   # adds all routes from items_router\n   ```\n\nAccording to the documentation, `app.include_router()` “adds each `APIRouter` to the main `FastAPI` application” and “includes all the routes from that router as part of it.” The original `APIRouter` and its `APIRoute`s remain active after inclusion, so custom router subclasses continue to work. This pattern lets you group related API routes into separate files while keeping a single, clean `FastAPI` instance.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/bigger-applications.md#chunk_0035",
+          "content": "h `app.include_router()` we can add each `APIRouter` to the main `FastAPI` application.\n\nIt will include all the routes from that router as part of it.\n\n/// note | Technical Details\n\nFastAPI keeps the original `APIRouter` and its `APIRoute`s active when the router is included in the main application.\n\nThat means custom `APIRouter` and `APIRoute` subclasses can still participate after the router is included.\n\n///\n\n/// tip\n\nYou don't have to worry about performance when including routers.\n\nThis is",
+          "score": 0.7600651383399963,
+          "metadata": {
+            "source": "corpus/active/tutorial/bigger-applications.md",
+            "relative_path": "tutorial/bigger-applications.md",
+            "filename": "bigger-applications.md",
+            "doc_id": "tutorial/bigger-applications.md",
+            "chunk_index": 35,
+            "start_char": 14000,
+            "end_char": 14500,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "All factual statements (app.include_router adds each APIRouter, includes all routes, and original router remains active) are directly supported by the retrieved context; additional code examples are consistent and not contradictory.",
+      "answer_relevancy": 5,
+      "relevancy_reasoning": "The answer directly explains how to group routes in separate files, create APIRouter instances, and include them in the main FastAPI app, fully addressing the user question.",
+      "overall_score": 5.0,
+      "passed": true
+    },
+    {
+      "id": "eval_008",
+      "topic": "bigger_applications",
+      "question": "What is the purpose of setting prefix and tags when including an APIRouter in FastAPI?",
+      "expected_answer": "Setting 'prefix' automatically prepends a URL path segment (such as /users or /items) to all routes defined in that router without repeating it on every endpoint. Setting 'tags' groups and categorizes all routes from that router under a labeled section in the interactive OpenAPI documentation (Swagger UI and ReDoc).",
+      "generated_answer": "Setting a **`prefix`** and **`tags`** when you include an `APIRouter` tells FastAPI to:\n\n* **Prefix** – prepend the given string to every path operation defined in that router, so all of its endpoints share a common URL base (e.g., `prefix=\"/items\"` makes `/list` become `/items/list`).\n\n* **Tags** – attach the specified tag(s) to every operation in the router. FastAPI merges these tags with the router’s metadata and uses them when it generates the OpenAPI schema, which groups the endpoints under those tags in the automatic documentation UI.\n\nThus, prefixes shape the request URLs, and tags organize the operations in the OpenAPI docs. The framework combines these router‑level prefixes and tags with the rest of the application’s metadata when handling requests and building the schema.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/bigger-applications.md#chunk_0042",
+          "content": "l detail that you probably can **just skip**.\n\n---\n\nThe `APIRouter`s are not \"mounted\", they are not isolated from the rest of the application.\n\nThis is because we want to include their *path operations* in the OpenAPI schema and the user interfaces.\n\nFastAPI keeps the original routers and path operations active, and combines the router prefixes, dependencies, tags, responses, and other metadata when handling requests and generating OpenAPI.\n\n///\n\n## Configure the `entrypoint` in `pyproject.toml",
+          "score": 0.6343866586685181,
+          "metadata": {
+            "source": "corpus/active/tutorial/bigger-applications.md",
+            "relative_path": "tutorial/bigger-applications.md",
+            "filename": "bigger-applications.md",
+            "doc_id": "tutorial/bigger-applications.md",
+            "chunk_index": 42,
+            "start_char": 16800,
+            "end_char": 17300,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer states that prefix prepends to all routes and tags group operations in the OpenAPI schema, which directly matches the context describing how FastAPI combines router prefixes and tags when handling requests and generating OpenAPI metadata.",
+      "answer_relevancy": 5,
+      "relevancy_reasoning": "The response directly addresses the purpose of both prefix and tags for an APIRouter, explaining their effect on URLs and documentation, fully satisfying the user's question.",
+      "overall_score": 5.0,
+      "passed": true
+    },
+    {
+      "id": "eval_009",
+      "topic": "request_body",
+      "question": "How do you declare a request body with optional and required fields in FastAPI?",
+      "expected_answer": "Define a Pydantic model inheriting from BaseModel. Required fields are declared with standard type annotations (e.g., name: str), while optional fields are given a default value of None or declared as Optional/Union (e.g., description: str | None = None). Then declare the model as a parameter in your path operation function.",
+      "generated_answer": "In FastAPI a field is considered **optional** when you give it a default value (commonly `None`).  \nIf a field has no default value, FastAPI treats it as **required**.\n\n**Example with a Pydantic model**\n\n```python\nfrom typing import Optional\nfrom pydantic import BaseModel\n\nclass Item(BaseModel):\n    name: str                 # required – no default\n    description: Optional[str] = None   # optional – default is None\n```\n\n**Example using a raw Body parameter**\n\n```python\nfrom fastapi import FastAPI, Body\n\napp = FastAPI()\n\n@app.post(\"/items/\")\nasync def create_item(\n    name: str = Body(...),               # required (the ellipsis tells FastAPI it must be provided)\n    description: str | None = Body(None)  # optional – default is None\n):\n    return {\"name\": name, \"description\": description}\n```\n\nThe documentation notes that FastAPI determines a value is **not required** because it has a default of `= None` (the type hint `str | None` is only for editor support)【Document Section 1】. Therefore, to declare optional fields, give them a default of `None`; to declare required fields, omit the default (or use `Body(...)`).",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/body.md#chunk_0015",
+          "content": "e\n\nFastAPI will know that the value of `q` is not required because of the default value `= None`.\n\nThe `str | None` is not used by FastAPI to determine that the value is not required, it will know it's not required because it has a default value of `= None`.\n\nBut adding the type annotations will allow your editor to give you better support and detect errors.\n\n///\n\n## Without Pydantic { #without-pydantic }\n\nIf you don't want to use Pydantic models, you can also use **Body** parameters. See the do",
+          "score": 0.6064757108688354,
+          "metadata": {
+            "source": "corpus/active/tutorial/body.md",
+            "relative_path": "tutorial/body.md",
+            "filename": "body.md",
+            "doc_id": "tutorial/body.md",
+            "chunk_index": 15,
+            "start_char": 6000,
+            "end_char": 6500,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 4,
+      "faithfulness_reasoning": "The answer correctly states that FastAPI treats fields with a default (e.g., =None) as optional and those without as required, which is supported by the context. It also mentions using Body parameters, which aligns with the context. The specific claim about using Body(...) for required fields is not directly in the retrieved text but is consistent with FastAPI behavior, so the answer is mostly faithful with minor unsupported detail.",
+      "answer_relevancy": 5,
+      "relevancy_reasoning": "The response directly addresses how to declare optional and required fields in a request body, providing both a Pydantic model example and a raw Body parameter example, fully covering the user's question.",
+      "overall_score": 4.5,
+      "passed": true
+    },
+    {
+      "id": "eval_010",
+      "topic": "request_body",
+      "question": "How does FastAPI differentiate between path parameters, query parameters, and request body parameters in a function signature?",
+      "expected_answer": "FastAPI checks the path URL template first: if a parameter name is in the path template, it is a path parameter. If a parameter is declared with a singular/scalar type (like int, str, bool) and not in the path, it is treated as a query parameter. If a parameter is declared as a Pydantic model, it is parsed from the JSON request body.",
+      "generated_answer": "FastAPI inspects the **type** and **name** of each argument in the endpoint function:\n\n* **Path parameters** – If the argument name also appears in the route’s path template (e.g., `\"/items/{item_id}\"` and a parameter `item_id`), FastAPI treats it as a **path** parameter.\n\n* **Query parameters** – If the argument is a **singular type** such as `int`, `float`, `str`, `bool`, etc., and it is not part of the path, FastAPI interprets it as a **query** parameter. A default value (e.g., `q: str = None`) makes the query parameter optional.\n\n* **Request‑body parameters** – If the argument’s type is a **Pydantic model** (or any subclass of `BaseModel`), FastAPI assumes the whole request body should be parsed into that model, making it a **body** parameter.\n\nThus, by matching the argument name to the path and by examining its annotated type (singular vs. Pydantic model), FastAPI automatically decides whether the parameter is a path, query, or body parameter.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/body.md#chunk_0014",
+          "content": "on parameters will be recognized as follows:\n\n* If the parameter is also declared in the **path**, it will be used as a path parameter.\n* If the parameter is of a **singular type** (like `int`, `float`, `str`, `bool`, etc) it will be interpreted as a **query** parameter.\n* If the parameter is declared to be of the type of a **Pydantic model**, it will be interpreted as a request **body**.\n\n/// note\n\nFastAPI will know that the value of `q` is not required because of the default value `= None`.\n\nT",
+          "score": 0.7325571775436401,
+          "metadata": {
+            "source": "corpus/active/tutorial/body.md",
+            "relative_path": "tutorial/body.md",
+            "filename": "body.md",
+            "doc_id": "tutorial/body.md",
+            "chunk_index": 14,
+            "start_char": 5600,
+            "end_char": 6100,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer directly mirrors the three rules from the context—path name matching, singular type for query, and Pydantic model for body—without adding unsupported claims.",
+      "answer_relevancy": 5,
+      "relevancy_reasoning": "It fully addresses the question by explaining how FastAPI distinguishes each parameter type in a function signature.",
+      "overall_score": 5.0,
+      "passed": true
+    },
+    {
+      "id": "eval_011",
+      "topic": "async_concurrency",
+      "question": "When should you define a path operation function with normal def instead of async def in FastAPI?",
+      "expected_answer": "You should use normal def when using third-party libraries or performing operations that make blocking I/O calls (such as traditional database drivers or disk I/O) that do not support await. FastAPI automatically runs normal def functions in an external threadpool so they do not block the main event loop.",
+      "generated_answer": "In FastAPI you should use a regular `def` instead of `async def` whenever the code inside the path‑operation function is **blocking** – for example, when it performs CPU‑intensive work or calls libraries that perform I/O synchronously (database drivers, HTTP clients, file operations, etc.).  \n\nFastAPI will automatically run such a normal function in an external thread‑pool and await its result, preventing the event loop from being blocked. Use `async def` only when the body of the function is fully asynchronous (i.e., it uses `await`‑able calls).",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "async.md#chunk_0053",
+          "content": "blocking, etc.) and are curious about how FastAPI handles `async def` vs normal `def`, go ahead.\n\n///\n\n### Path operation functions { #path-operation-functions }\n\nWhen you declare a *path operation function* with normal `def` instead of `async def`, it is run in an external threadpool that is then awaited, instead of being called directly (as it would block the server).\n\nIf you are coming from another async framework that does not work in the way described above and you are used to defining triv",
+          "score": 0.8355166912078857,
+          "metadata": {
+            "source": "corpus/active/async.md",
+            "relative_path": "async.md",
+            "filename": "async.md",
+            "doc_id": "async.md",
+            "chunk_index": 53,
+            "start_char": 21200,
+            "end_char": 21700,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 4,
+      "faithfulness_reasoning": "The answer correctly states that normal def functions are run in an external threadpool to avoid blocking, which is supported by the context. However, it adds details (CPU‑intensive work, specific library examples) that are not present in the retrieved text, so not fully grounded.",
+      "answer_relevancy": 5,
+      "relevancy_reasoning": "The response directly answers the question by explaining when to use def instead of async def, providing a clear and complete explanation.",
+      "overall_score": 4.5,
+      "passed": true
+    },
+    {
+      "id": "eval_012",
+      "topic": "async_concurrency",
+      "question": "How does FastAPI execute normal def path operation functions without blocking the main event loop?",
+      "expected_answer": "FastAPI runs normal def path operation functions in a separate threadpool (worker threads via Starlette/AnyIO) instead of the main async event loop, ensuring non-blocking execution while allowing the event loop to concurrently handle other incoming requests.",
+      "generated_answer": "FastAPI detects that a path‑operation function is a regular **`def`** (i.e., not `async`).  \nInstead of calling it directly—which would block the async event loop—it schedules the function to run in an **external thread‑pool** (via Starlette’s `run_in_threadpool`). The request handler then **awaits** the thread‑pool task, so the main event loop stays free to handle other connections while the synchronous code executes in a separate thread.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "async.md#chunk_0053",
+          "content": "blocking, etc.) and are curious about how FastAPI handles `async def` vs normal `def`, go ahead.\n\n///\n\n### Path operation functions { #path-operation-functions }\n\nWhen you declare a *path operation function* with normal `def` instead of `async def`, it is run in an external threadpool that is then awaited, instead of being called directly (as it would block the server).\n\nIf you are coming from another async framework that does not work in the way described above and you are used to defining triv",
+          "score": 0.7459927201271057,
+          "metadata": {
+            "source": "corpus/active/async.md",
+            "relative_path": "async.md",
+            "filename": "async.md",
+            "doc_id": "async.md",
+            "chunk_index": 53,
+            "start_char": 21200,
+            "end_char": 21700,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "All statements (detecting def, using external thread‑pool, awaiting the task, keeping the event loop free) are directly supported by the retrieved context which says normal def functions run in an external threadpool and are awaited.",
+      "answer_relevancy": 5,
+      "relevancy_reasoning": "The answer directly explains how FastAPI handles normal def path operations to avoid blocking the event loop, fully addressing the user question.",
+      "overall_score": 5.0,
+      "passed": true
+    },
+    {
+      "id": "eval_013",
+      "topic": "security",
+      "question": "What role does OAuth2PasswordBearer play in FastAPI authentication, and what is tokenUrl used for?",
+      "expected_answer": "OAuth2PasswordBearer is a security scheme class that extracts the bearer token from the HTTP Authorization header. The tokenUrl parameter specifies the URL endpoint where the client must submit credentials (username and password) to get a token, and it is used by Swagger UI to enable the interactive authorization modal.",
+      "generated_answer": "**OAuth2PasswordBearer**  \nIn FastAPI it is a security utility that creates a *dependency* which looks for an `Authorization` header in the incoming request, expects the value to be in the form `Bearer <token>`, and extracts the token string for you to use in your endpoint logic. In the excerpt you provided, this is the mechanism that enables the “specific endpoint” to receive the token that the client sends as `Authorization: Bearer foobar`.\n\n**tokenUrl**  \nThe snippet you shared does not contain a definition of the `tokenUrl` parameter. In the broader FastAPI documentation, `tokenUrl` is the URL path where the client can obtain an access token (the token‑issuing endpoint). Since that detail is not present in the provided context, the answer cannot be derived from the given material.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/security/first-steps.md#chunk_0010",
+          "content": "specific endpoint.\n    * So, to authenticate with our API, it sends a header `Authorization` with a value of `Bearer ` plus the token.\n    * If the token contains `foobar`, the content of the `Authorization` header would be: `Bearer foobar`.\n\n## **FastAPI**'s `OAuth2PasswordBearer` { #fastapis-oauth2passwordbearer }\n\n**FastAPI** provides several tools, at different levels of abstraction, to implement these security features.\n\nIn this example we are going to use **OAuth2**, with the **Password**",
+          "score": 0.71908038854599,
+          "metadata": {
+            "source": "corpus/active/tutorial/security/first-steps.md",
+            "relative_path": "tutorial/security/first-steps.md",
+            "filename": "first-steps.md",
+            "doc_id": "tutorial/security/first-steps.md",
+            "chunk_index": 10,
+            "start_char": 4000,
+            "end_char": 4500,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer's description of OAuth2PasswordBearer matches the context, which states it extracts the Bearer token from the Authorization header. It correctly notes that tokenUrl is not mentioned in the provided excerpt and gives a general definition without contradicting the context.",
+      "answer_relevancy": 5,
+      "relevancy_reasoning": "The response directly addresses both parts of the question: it explains the role of OAuth2PasswordBearer in authentication and clarifies the purpose of tokenUrl, providing a complete and pertinent answer.",
+      "overall_score": 5.0,
+      "passed": true
+    },
+    {
+      "id": "eval_014",
+      "topic": "security_jwt",
+      "question": "What algorithm and secret key are used to sign JWT tokens in FastAPI, and what does the token payload typically include?",
+      "expected_answer": "JWT tokens are signed using a symmetric hashing algorithm like HS256 (HMAC-SHA256) and a secret key known only to the backend. The payload dictionary typically includes a 'sub' claim representing the user identity (such as username) and an 'exp' expiration timestamp.",
+      "generated_answer": "The provided documentation excerpt does not specify the algorithm or secret key used to sign JWT tokens, nor does it describe the typical contents of the token payload. Therefore, that information cannot be answered from the given context.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/security/first-steps.md#chunk_0007",
+          "content": "signed so that the backend or API could be independent of the server that authenticates the user.\n\nBut in this case, the same **FastAPI** application will handle the API and the authentication.\n\nSo, let's review it from that simplified point of view:\n\n* The user types the `username` and `password` in the frontend, and hits `Enter`.\n* The frontend (running in the user's browser) sends that `username` and `password` to a specific URL in our API (declared with `tokenUrl=\"token\"`).\n* The API checks",
+          "score": 0.6190893650054932,
+          "metadata": {
+            "source": "corpus/active/tutorial/security/first-steps.md",
+            "relative_path": "tutorial/security/first-steps.md",
+            "filename": "first-steps.md",
+            "doc_id": "tutorial/security/first-steps.md",
+            "chunk_index": 7,
+            "start_char": 2800,
+            "end_char": 3300,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer correctly notes that the retrieved context contains no information about the JWT signing algorithm, secret key, or payload contents, matching the provided excerpt.",
+      "answer_relevancy": 4,
+      "relevancy_reasoning": "The response directly addresses the question by stating the information is absent from the context, though it does not supply the requested details, making it relevant but not fully answering the query.",
+      "overall_score": 4.5,
+      "passed": true
+    },
+    {
+      "id": "eval_015",
+      "topic": "security_passwords",
+      "question": "How do you hash and verify user passwords securely in FastAPI using PassLib?",
+      "expected_answer": "Instantiate CryptContext(schemes=['bcrypt'], deprecated='auto') from passlib.context. Call pwd_context.hash(plain_password) to generate a secure password hash, and call pwd_context.verify(plain_password, hashed_password) during authentication to verify if a submitted password matches the stored hash.",
+      "generated_answer": "The provided documentation excerpt discusses using **pwdlib** for password hashing and only mentions PassLib in passing, recommending it for handling legacy hashes. It does not include any code examples or step‑by‑step instructions for hashing and verifying passwords with PassLib in FastAPI. Therefore, the FastAPI documentation you supplied does not contain enough information to answer how to hash and verify user passwords securely using PassLib.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/security/oauth2-jwt.md#chunk_0009",
+          "content": "fy-the-passwords }\n\nImport the tools we need from `pwdlib`.\n\nCreate a PasswordHash instance with recommended settings - it will be used for hashing and verifying passwords.\n\n/// tip\n\npwdlib also supports the bcrypt hashing algorithm but does not include legacy algorithms - for working with outdated hashes, it is recommended to use the passlib library.\n\nFor example, you could use it to read and verify passwords generated by another system (like Django) but hash any new passwords with a different",
+          "score": 0.6385678648948669,
+          "metadata": {
+            "source": "corpus/active/tutorial/security/oauth2-jwt.md",
+            "relative_path": "tutorial/security/oauth2-jwt.md",
+            "filename": "oauth2-jwt.md",
+            "doc_id": "tutorial/security/oauth2-jwt.md",
+            "chunk_index": 9,
+            "start_char": 3600,
+            "end_char": 4100,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer accurately reflects the retrieved context, which only mentions pwdlib and briefly notes PassLib for legacy hashes without providing hashing/verification code, so its claim of insufficient information is supported.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "The answer does not supply the requested method for hashing and verifying passwords with PassLib, merely stating the documentation lacks it, thus it fails to directly answer the user’s question.",
+      "overall_score": 3.5,
+      "passed": false
+    },
+    {
+      "id": "eval_016",
+      "topic": "security_oauth2",
+      "question": "Why does OAuth2 in FastAPI require OAuth2PasswordRequestForm to use form data instead of JSON for login?",
+      "expected_answer": "The OAuth2 specification strictly requires credential requests to be sent as form data (application/x-www-form-urlencoded) with specific field names 'username' and 'password', rather than as a JSON body. OAuth2PasswordRequestForm parses this form data to maintain full compliance with the OAuth2 standard.",
+      "generated_answer": "The provided documentation explains that `OAuth2PasswordRequestForm` is simply a convenience class that FastAPI supplies for handling form‑encoded data (it could be written manually or you could declare `Form` parameters directly). It does not discuss why the OAuth2 token endpoint in FastAPI expects form data rather than JSON. Therefore, the FastAPI documentation excerpt you shared does not contain enough information to answer why OAuth2 in FastAPI requires `OAuth2PasswordRequestForm` to use form data instead of JSON for login.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/security/simple-oauth2.md#chunk_0007",
+          "content": "for our example).\n\n/// note\n\nThe `OAuth2PasswordRequestForm` is not a special class for **FastAPI** as is `OAuth2PasswordBearer`.\n\n`OAuth2PasswordBearer` makes **FastAPI** know that it is a security scheme. So it is added that way to OpenAPI.\n\nBut `OAuth2PasswordRequestForm` is just a class dependency that you could have written yourself, or you could have declared `Form` parameters directly.\n\nBut as it's a common use case, it is provided by **FastAPI** directly, just to make it easier.\n\n///\n\n##",
+          "score": 0.702133297920227,
+          "metadata": {
+            "source": "corpus/active/tutorial/security/simple-oauth2.md",
+            "relative_path": "tutorial/security/simple-oauth2.md",
+            "filename": "simple-oauth2.md",
+            "doc_id": "tutorial/security/simple-oauth2.md",
+            "chunk_index": 7,
+            "start_char": 2800,
+            "end_char": 3300,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer accurately reflects the retrieved context, stating that OAuth2PasswordRequestForm is a convenience class and that the excerpt does not explain why form data is required; all claims are directly supported by the provided text.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "The answer does not address the core question of why OAuth2 requires form data instead of JSON; it merely notes the lack of information in the context, providing no explanatory answer.",
+      "overall_score": 3.5,
+      "passed": false
+    },
+    {
+      "id": "eval_017",
+      "topic": "security_user",
+      "question": "How do you implement a get_current_user dependency that validates a token and raises an HTTP 401 error if authentication fails?",
+      "expected_answer": "Define a dependency function that takes the token via Depends(oauth2_scheme), decodes the JWT token with jwt.decode, and extracts the username from the payload. If the token is invalid, expired, or the user is not found, raise an HTTPException with status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate credentials', and headers={'WWW-Authenticate': 'Bearer'}.",
+      "generated_answer": "In the tutorial the **`get_current_user`** dependency is the function that actually checks the incoming OAuth2 token and, when the token cannot be validated, raises an **HTTP 401** error.  \nThe pattern used in *tutorial003_an_py310.py* (lines 58‑66) is:\n\n```python\nfrom fastapi import Depends, HTTPException, status\nfrom fastapi.security import OAuth2PasswordBearer\n\noauth2_scheme = OAuth2PasswordBearer(tokenUrl=\"token\")\n\ndef get_current_user(token: str = Depends(oauth2_scheme)):\n    # 1️⃣  Decode / verify the token (e.g., using JWT)\n    user = decode_token(token)          # ← your token‑validation logic\n    if not user:\n        # 2️⃣  If the token is missing, malformed or invalid, raise 401\n        raise HTTPException(\n            status_code=status.HTTP_401_UNAUTHORIZED,\n            detail=\"Could not validate credentials\",\n            headers={\"WWW-Authenticate\": \"Bearer\"},\n        )\n    return user\n```\n\n**Key points**\n\n| Step | What the code does | Relation to the docs |\n|------|--------------------|----------------------|\n| `oauth2_scheme = OAuth2PasswordBearer(...)` | Declares the OAuth2 “Bearer” token extractor that FastAPI will read from the `Authorization` header. | Mentioned in the tutorial as the basis for the dependency. |\n| `token: str = Depends(oauth2_scheme)` | Makes the token value available to the function via dependency injection. | Same mechanism used in the example. |\n| `decode_token(token)` | Your custom logic (e.g., `jwt.decode`) that verifies the token and returns a user object or `None`. | Implied by the “validate a token” requirement. |\n| `raise HTTPException(... status_code=401 ...)` | Returns an HTTP 401 response when validation fails, with the `WWW-Authenticate: Bearer` header so clients know the auth scheme. | The tutorial states “Both of these dependencies will just return an HTTP error if the user doesn't exist, or is inactive.” |\n\nThus, to **implement `get_current_user`** you:\n\n1. Use `OAuth2PasswordBearer` to extract the token.\n2. Validate the token (e.g., decode a JWT, check expiration, etc.).\n3. If validation fails, raise `HTTPException` with `status_code=401`, a helpful `detail` message, and the `WWW-Authenticate: Bearer` header.  \nWhen the token is valid, return the user object, which downstream dependencies (like `get_current_active_user`) can further inspect.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/security/simple-oauth2.md#chunk_0017",
+          "content": "g to update our dependencies.\n\nWe want to get the `current_user` *only* if this user is active.\n\nSo, we create an additional dependency `get_current_active_user` that in turn uses `get_current_user` as a dependency.\n\nBoth of these dependencies will just return an HTTP error if the user doesn't exist, or is inactive.\n\nSo, in our endpoint, we will only get a user if the user exists, was correctly authenticated, and is active:\n\n{* ../../docs_src/security/tutorial003_an_py310.py hl[58:66,69:74,94] *",
+          "score": 0.6137183904647827,
+          "metadata": {
+            "source": "corpus/active/tutorial/security/simple-oauth2.md",
+            "relative_path": "tutorial/security/simple-oauth2.md",
+            "filename": "simple-oauth2.md",
+            "doc_id": "tutorial/security/simple-oauth2.md",
+            "chunk_index": 17,
+            "start_char": 6800,
+            "end_char": 7300,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 3,
+      "faithfulness_reasoning": "The answer correctly describes using OAuth2PasswordBearer and raising a 401 HTTPException, which aligns with the general idea in the context, but specific details like decode_token, exact exception fields, and code snippets are not present in the retrieved context, making the answer only partially grounded.",
+      "answer_relevancy": 5,
+      "relevancy_reasoning": "The response directly answers how to implement get_current_user, provides clear code and step-by-step explanation, fully addressing the user's request.",
+      "overall_score": 4.0,
+      "passed": true
+    },
+    {
+      "id": "eval_018",
+      "topic": "features_docs",
+      "question": "What are the two automatic interactive API documentation interfaces provided out of the box by FastAPI?",
+      "expected_answer": "FastAPI provides Swagger UI (available by default at /docs for interactive exploration and calling of endpoints) and ReDoc (available by default at /redoc for clean responsive documentation), both generated automatically from the OpenAPI schema.",
+      "generated_answer": "The provided documentation excerpt does not specify the names of the two automatic interactive API documentation interfaces that FastAPI includes out of the box. Therefore, based on the given context, I cannot determine the answer.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/security/index.md#chunk_0011",
+          "content": "I using those tools provided by **FastAPI**.\n\nAnd you will also see how it gets automatically integrated into the interactive documentation system.",
+          "score": 0.8268275260925293,
+          "metadata": {
+            "source": "corpus/active/tutorial/security/index.md",
+            "relative_path": "tutorial/security/index.md",
+            "filename": "index.md",
+            "doc_id": "tutorial/security/index.md",
+            "chunk_index": 11,
+            "start_char": 4400,
+            "end_char": 4547,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer correctly states that the provided context does not mention the names of the documentation interfaces, which aligns with the retrieved excerpt.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "While the answer acknowledges the question, it fails to provide the requested information about the two interfaces, offering no substantive answer.",
+      "overall_score": 3.5,
+      "passed": false
+    },
+    {
+      "id": "eval_019",
+      "topic": "features_performance",
+      "question": "How does FastAPI achieve high performance comparable to NodeJS and Go?",
+      "expected_answer": "FastAPI is built directly on top of Starlette for high-performance asynchronous web routing and Pydantic for data parsing and validation, executed by ASGI servers like Uvicorn. This architecture provides raw performance on par with NodeJS and Go.",
+      "generated_answer": "FastAPI attains its high‑performance level by being built on **Starlette**, an async‑first web framework.  \n- It uses **asynchronous (async/await) code** for handling web‑API requests, giving it the same kind of non‑blocking I/O that made NodeJS popular.  \n- Because FastAPI runs on top of Starlette, it can combine **asynchronicity with true parallelism** (e.g., via multiple workers or async tasks), which lets it handle many requests concurrently.  \n\nThis combination of async handling and parallel execution lets FastAPI achieve performance that is **higher than most NodeJS frameworks and on par with compiled‑language frameworks like Go**. The documentation attributes this to Starlette’s async capabilities.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "async.md#chunk_0030",
+          "content": "asynchronous ⏸🔀⏯ code for web APIs.\n\nThis kind of asynchronicity is what made NodeJS popular (even though NodeJS is not parallel) and that's the strength of Go as a programming language.\n\nAnd that's the same level of performance you get with **FastAPI**.\n\nAnd as you can have parallelism and asynchronicity at the same time, you get higher performance than most of the tested NodeJS frameworks and on par with Go, which is a compiled language closer to C [(all thanks to Starlette)](https://www.tech",
+          "score": 0.8170616626739502,
+          "metadata": {
+            "source": "corpus/active/async.md",
+            "relative_path": "async.md",
+            "filename": "async.md",
+            "doc_id": "async.md",
+            "chunk_index": 30,
+            "start_char": 12000,
+            "end_char": 12500,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "All claims (Starlette foundation, async/await handling, similarity to NodeJS async model, combination of async with parallelism, higher performance than most NodeJS frameworks and parity with Go) are directly supported by the retrieved context.",
+      "answer_relevancy": 5,
+      "relevancy_reasoning": "The answer directly explains the mechanisms (Starlette, async code, parallelism) by which FastAPI attains performance comparable to NodeJS and Go, fully addressing the user question.",
+      "overall_score": 5.0,
+      "passed": true
+    },
+    {
+      "id": "eval_020",
+      "topic": "api_reference",
+      "question": "What parameters of the FastAPI application class allow you to customize or disable the automatic OpenAPI docs URL routes?",
+      "expected_answer": "The FastAPI class provides 'docs_url' (to change or disable the Swagger UI route by setting it to None), 'redoc_url' (to change or disable the ReDoc route by setting it to None), and 'openapi_url' (to configure or disable the OpenAPI JSON schema endpoint).",
+      "generated_answer": "The provided documentation excerpt does not include information about the parameters of the **FastAPI** application class that control or disable the automatic OpenAPI documentation URL routes. Therefore, based on the given context, I cannot answer that question.",
+      "retrieved_chunks": [
+        {
+          "chunk_id": "tutorial/bigger-applications.md#chunk_0042",
+          "content": "l detail that you probably can **just skip**.\n\n---\n\nThe `APIRouter`s are not \"mounted\", they are not isolated from the rest of the application.\n\nThis is because we want to include their *path operations* in the OpenAPI schema and the user interfaces.\n\nFastAPI keeps the original routers and path operations active, and combines the router prefixes, dependencies, tags, responses, and other metadata when handling requests and generating OpenAPI.\n\n///\n\n## Configure the `entrypoint` in `pyproject.toml",
+          "score": 0.6794813871383667,
+          "metadata": {
+            "source": "corpus/active/tutorial/bigger-applications.md",
+            "relative_path": "tutorial/bigger-applications.md",
+            "filename": "bigger-applications.md",
+            "doc_id": "tutorial/bigger-applications.md",
+            "chunk_index": 42,
+            "start_char": 16800,
+            "end_char": 17300,
+            "chunk_size": 500,
+            "overlap": 100
+          }
+        }
+      ],
+      "faithfulness": 5,
+      "faithfulness_reasoning": "The answer correctly states that the retrieved context does not contain information about FastAPI parameters for OpenAPI docs, which matches the provided excerpt.",
+      "answer_relevancy": 2,
+      "relevancy_reasoning": "While the response acknowledges the question, it does not provide the requested parameters, offering only that the information is absent, thus it fails to answer the user's query.",
+      "overall_score": 3.5,
+      "passed": false
+    }
+  ]
+}

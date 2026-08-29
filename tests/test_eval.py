@@ -203,3 +203,75 @@ def test_v002_sick_index_isolation():
     assert v002_cfg["chunk_size"] == 70
     assert v002_cfg["overlap"] == 0
     assert v002_cfg["total_chunks"] > v001_cfg["total_chunks"]
+
+
+def test_v003_retrieval_sick_index_structure_and_isolation():
+    v001_path = Path("indexes/v001")
+    v002_sick_path = Path("indexes/v002_sick")
+    v003_path = Path("indexes/v003_retrieval_sick")
+
+    assert v001_path.exists(), "indexes/v001 must exist"
+    assert v002_sick_path.exists(), "indexes/v002_sick must exist"
+    assert v003_path.exists(), "indexes/v003_retrieval_sick must exist"
+
+    with open(v001_path / "config.json") as f:
+        v001_cfg = json.load(f)
+
+    with open(v002_sick_path / "config.json") as f:
+        v002_cfg = json.load(f)
+
+    with open(v003_path / "config.json") as f:
+        v003_cfg = json.load(f)
+
+    # v003_retrieval_sick preserves baseline chunking & corpus
+    assert v003_cfg["version"] == "v003_retrieval_sick"
+    assert v003_cfg["chunk_size"] == v001_cfg["chunk_size"] == 500
+    assert v003_cfg["overlap"] == v001_cfg["overlap"] == 100
+    assert v003_cfg["total_chunks"] == v001_cfg["total_chunks"] == 294
+    assert v003_cfg["total_documents"] == v001_cfg["total_documents"] == 13
+    assert v003_cfg["embedding_model"] == v001_cfg["embedding_model"]
+
+    # v003_retrieval_sick has retrieval degradation (top_k = 1)
+    assert v003_cfg["top_k"] == 1
+
+    # v001 and v002_sick remain untouched
+    assert v001_cfg["chunk_size"] == 500
+    assert v002_cfg["chunk_size"] == 70
+    assert v002_cfg["overlap"] == 0
+
+    # Verify evaluation results file exists and records degradation
+    v003_results_path = Path("eval/v003_retrieval_sick_results.json")
+    assert v003_results_path.exists(), "eval/v003_retrieval_sick_results.json must exist"
+
+    with open(v003_results_path, "r", encoding="utf-8") as f:
+        v003_results = json.load(f)
+
+    summary = v003_results["summary"]
+    assert summary["index_version"] == "v003_retrieval_sick"
+    assert summary["is_degraded"] is True
+    assert summary["failing_count"] > 0
+    assert len(v003_results["failing_queries"]) == summary["failing_count"]
+
+
+def test_variant_failure_distinction():
+    """Verify that v002_sick and v003_retrieval_sick represent distinct failure modes."""
+    with open("eval/sick_results.json") as f:
+        v002_results = json.load(f)
+
+    with open("eval/v003_retrieval_sick_results.json") as f:
+        v003_results = json.load(f)
+
+    # v002_sick has chunking failure: retrieved chunks have chunk_size=70
+    v002_first_fail = v002_results["failing_queries"][0]
+    v002_chunks = v002_first_fail["retrieved_chunks"]
+    assert len(v002_chunks) == 3
+    assert all(c["metadata"]["chunk_size"] == 70 for c in v002_chunks)
+    assert all(c["metadata"]["overlap"] == 0 for c in v002_chunks)
+
+    # v003_retrieval_sick has retrieval failure: only 1 chunk retrieved, but chunk_size=500
+    v003_first_fail = v003_results["failing_queries"][0]
+    v003_chunks = v003_first_fail["retrieved_chunks"]
+    assert len(v003_chunks) == 1
+    assert v003_chunks[0]["metadata"]["chunk_size"] == 500
+    assert v003_chunks[0]["metadata"]["overlap"] == 100
+

@@ -1,0 +1,12 @@
+{
+  "version": "v003_retrieval_sick",
+  "created_at": "2026-08-29T12:17:03.921003+00:00",
+  "chunk_size": 500,
+  "overlap": 100,
+  "top_k": 1,
+  "embedding_model": "all-MiniLM-L6-v2",
+  "dimension": 384,
+  "metric": "inner_product_normalized_cosine",
+  "total_chunks": 294,
+  "total_documents": 13
+}

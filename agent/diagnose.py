@@ -104,9 +104,7 @@ async def run_diagnose_subagent(index_version: Optional[str] = None) -> Dict[str
             prompt += f"  - Chunk {i+1} (Size: {metadata.get('chunk_size')}, Overlap: {metadata.get('overlap')}): {chunk.get('content')}\n"
         prompt += f"Faithfulness Score: {q.get('faithfulness')} - {q.get('faithfulness_reasoning')}\n"
         prompt += f"Answer Relevancy Score: {q.get('answer_relevancy')} - {q.get('relevancy_reasoning')}\n"
-        prompt += "-" * 40 + "\n"
-        
-    prompt += "\nBased on the configurations and the failing queries (especially note the chunk sizes, overlaps, and the fragmented content), diagnose the root cause and output the JSON response."
+    prompt += "\nBased on the configurations and the failing queries (note differences in chunk size, overlap, top_k / number of retrieved chunks, and the content grounding), diagnose the root cause and output the JSON response."
 
     # 5. Make LLM call
     api_key = os.getenv("GROQ_API_KEY")
