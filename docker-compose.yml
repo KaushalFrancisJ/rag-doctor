@@ -1,0 +1,61 @@
+services:
+  # 1. RAG Doctor MCP Server (Health check, retrieval diagnostics, eval metrics)
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    image: rag-doctor-mcp:latest
+    container_name: rag-doctor-mcp
+    env_file:
+      - .env
+    volumes:
+      - ./indexes:/app/indexes
+      - ./eval:/app/eval
+      - ./corpus:/app/corpus
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
+
+  # 2. TrueForge Agent Server (Agent loop, Daytona sandbox, Gemini model harness)
+  trueforge:
+    build:
+      context: .
+      dockerfile: Dockerfile.trueforge
+    image: rag-doctor-trueforge:latest
+    container_name: rag-doctor-trueforge
+    env_file:
+      - .env
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8790
+      - MODEL_CATALOG_PATH=/app/trueforge-models.yaml
+      - SANDBOX_CATALOG_PATH=/app/trueforge-sandbox.yaml
+      - MCP_CATALOG_PATH=/app/trueforge-mcp.yaml
+    ports:
+      - "127.0.0.1:8790:8790"
+    depends_on:
+      - mcp-server
+    restart: unless-stopped
+
+  # 3. One-shot bootstrap container to auto-register Gemini, Daytona & MCP credentials
+  init-config:
+    image: python:3.12-slim
+    container_name: rag-doctor-init
+    env_file:
+      - .env
+    volumes:
+      - ./scripts:/app/scripts
+      - ./.env:/app/.env
+      - ./trueforge-models.yaml:/app/trueforge-models.yaml
+    working_dir: /app
+    command: [
+      "python",
+      "scripts/setup_trueforge.py",
+      "--host", "http://trueforge:8790",
+      "--mcp-url", "http://mcp-server:8000/sse",
+      "--wait-timeout", "60"
+    ]
+    depends_on:
+      - trueforge
+      - mcp-server
+    restart: "no"

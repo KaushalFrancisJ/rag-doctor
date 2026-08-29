@@ -1,0 +1,7 @@
+# TrueForge MCP Server Catalog Presets
+# Loaded via MCP_CATALOG_PATH env variable in TrueForge
+mcp_servers:
+  - type: remote
+    name: rag-doctor-mcp
+    url: http://127.0.0.1:8000/sse
+    description: RAG Doctor MCP server for inspecting pipeline health, retrieval diagnostics, and eval reports

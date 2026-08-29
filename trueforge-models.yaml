@@ -1,0 +1,35 @@
+# TrueForge Model Catalog Presets
+# Loaded via MODEL_CATALOG_PATH env variable in TrueForge
+providers:
+  - type: google-gemini
+    logo: https://assets.production.truefoundry.com/google-gemini.svg
+    models:
+      - model_id: gemini-2.5-flash
+        name: gemini-2-5-flash
+        properties:
+          context_length: 1048576
+          max_output_tokens: 65536
+          reasoning_efforts:
+            - minimal
+            - low
+            - medium
+            - high
+      - model_id: gemini-2.5-pro
+        name: gemini-2-5-pro
+        properties:
+          context_length: 1048576
+          max_output_tokens: 65536
+          reasoning_efforts:
+            - low
+            - medium
+            - high
+      - model_id: gemini-2.0-flash
+        name: gemini-2-0-flash
+        properties:
+          context_length: 1048576
+          max_output_tokens: 65536
+          reasoning_efforts:
+            - none
+            - low
+            - medium
+            - high

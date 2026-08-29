@@ -104,14 +104,15 @@ sequenceDiagram
 
 | Layer | Choice | Why |
 |---|---|---|
-| Agent harness | TrueForge | sponsor tool; subagents, sandbox, and approval gates are built in |
-| Agent + judge + generation model | Groq API | fast inference, you already use it, generous free tier |
-| Embeddings | Sentence Transformers (local) | no API rate limits, matches your existing RAG project |
-| Vector index | FAISS (in-memory) | fastest to stand up, no DB server to manage this week |
-| Code execution | TrueForge's built-in sandbox | no separate setup — this is where re-chunk/re-embed scripts actually run |
-| Corpus/index storage | local filesystem, versioned folders | simplest possible versioning for a week-long build |
-| Language | Python | matches your stack, runs cleanly in the sandbox |
-| Frontend | TrueForge's built-in chat UI | skip building a custom UI, spend the saved time on agent logic |
+| Agent harness | TrueForge | sponsor tool; subagents, sandbox, MCP integration, and approval gates are built in |
+| Agent reasoning & subagents | Google Gemini API / Groq API | native TrueForge reasoning provider with fast inference support |
+| Patient generator + judge | Groq API | fast inference for the patient RAG pipeline and LLM-as-judge scoring |
+| Embeddings | Sentence Transformers (local) | no API rate limits, matches existing RAG project |
+| Vector index | FAISS (local filesystem) | fast, lightweight vector search without managing external DB servers |
+| Code execution | TrueForge Sandbox / Daytona Provider | isolated sandbox execution for candidate re-chunking and re-embedding |
+| Corpus/index storage | local filesystem, versioned folders | simplest possible versioning for active and candidate artifacts |
+| Language | Python 3.12 | runs cleanly in the pipeline, MCP server, and sandbox |
+| Frontend | TrueForge's built-in chat UI | interactive approval gate and agent interface |
 | Version control | GitHub (public repo) | required for submission |
 
 ## Suggested Repo Structure

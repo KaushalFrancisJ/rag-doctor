@@ -1,0 +1,101 @@
+# TrueForge Agent Harness Configuration for RAG Doctor
+# ----------------------------------------------------
+# This configuration sets up:
+# 1. Model Provider: Native Google Gemini
+# 2. Sandbox Provider: Daytona (for isolated remediation execution)
+# 3. MCP Server: RAG Doctor local MCP server (SSE transport)
+# 4. Agent Spec: RAG Doctor orchestrator agent definition
+
+# ----------------------------------------------------
+# 1. Model Provider Configuration (Google Gemini Native)
+# ----------------------------------------------------
+models:
+  provider:
+    type: google-gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta
+    auth:
+      api_key_env: GEMINI_API_KEY
+    models:
+      - model_id: gemini-2.5-flash
+        name: gemini-2-5-flash
+        properties:
+          context_length: 1048576
+          max_output_tokens: 65536
+          reasoning_efforts:
+            - minimal
+            - low
+            - medium
+            - high
+      - model_id: gemini-2.5-pro
+        name: gemini-2-5-pro
+        properties:
+          context_length: 1048576
+          max_output_tokens: 65536
+          reasoning_efforts:
+            - low
+            - medium
+            - high
+      - model_id: gemini-2.0-flash
+        name: gemini-2-0-flash
+        properties:
+          context_length: 1048576
+          max_output_tokens: 65536
+          reasoning_efforts:
+            - none
+            - low
+            - medium
+            - high
+
+# ----------------------------------------------------
+# 2. Sandbox Provider Configuration (Daytona)
+# ----------------------------------------------------
+sandbox:
+  provider:
+    type: daytona
+    auth:
+      api_key_env: DAYTONA_API_KEY
+    exec_timeout_ms: 60000
+    auto_stop_interval_in_minutes: 5
+    auto_archive_interval_in_minutes: 60
+    auto_delete_interval_in_minutes: 7200
+
+# ----------------------------------------------------
+# 3. Model Context Protocol (MCP) Server Configuration
+# ----------------------------------------------------
+mcp_servers:
+  - name: rag-doctor-mcp
+    type: remote
+    url: http://127.0.0.1:8000/sse
+    description: RAG Doctor MCP server providing health inspection, retrieval diagnostics, and eval reports.
+
+# ----------------------------------------------------
+# 4. Agent Spec (RAG Doctor Orchestrator)
+# ----------------------------------------------------
+agent:
+  name: rag-doctor
+  model:
+    provider: google-gemini
+    name: gemini-2-5-flash
+  instructions: |
+    You are RAG Doctor 🩺, an autonomous self-healing RAG pipeline agent.
+    Your workflow:
+    1. Inspect pipeline health using `inspect_rag_health` from the RAG Doctor MCP server.
+    2. If health is DEGRADED, diagnose the root cause from failing queries and chunk parameters.
+    3. Formulate a remediation hypothesis and execute the re-chunking/re-indexing fix in the Daytona sandbox.
+    4. Re-evaluate the candidate index in the sandbox.
+    5. Present before/after scores to the human user and request approval before promoting the candidate.
+  config:
+    sandbox:
+      enabled: true
+      file_downloads: true
+    dynamic_sub_agents:
+      enabled: true
+    ask_user_questions:
+      enabled: true
+    context_management:
+      compaction:
+        enabled: true
+      large_tool_response:
+        enabled: true
+  mcp_servers:
+    - name: rag-doctor-mcp
