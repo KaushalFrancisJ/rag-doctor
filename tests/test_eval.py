@@ -275,3 +275,64 @@ def test_variant_failure_distinction():
     assert v003_chunks[0]["metadata"]["chunk_size"] == 500
     assert v003_chunks[0]["metadata"]["overlap"] == 100
 
+
+def test_validate_diagnosis_valid_and_categories():
+    from agent.diagnose import validate_diagnosis, DIAGNOSIS_CATEGORIES
+
+    assert len(DIAGNOSIS_CATEGORIES) == 7
+    assert "chunking problem" in DIAGNOSIS_CATEGORIES
+    assert "retrieval problem" in DIAGNOSIS_CATEGORIES
+
+    valid_payload = {
+        "suspected_cause": "chunking problem",
+        "evidence": "Chunks cut off mid-sentence with size 70.",
+        "confidence": 0.95,
+        "recommended_experiment": "increase chunk_size to 500",
+    }
+    validated = validate_diagnosis(valid_payload)
+    assert validated["suspected_cause"] == "chunking problem"
+    assert validated["confidence"] == 0.95
+
+
+def test_validate_diagnosis_invalid():
+    from agent.diagnose import validate_diagnosis
+
+    # Invalid cause
+    with pytest.raises(ValueError, match="Invalid suspected_cause"):
+        validate_diagnosis({
+            "suspected_cause": "unknown mystery problem",
+            "evidence": "no idea",
+            "confidence": 0.5,
+            "recommended_experiment": "try something",
+        })
+
+    # Missing keys
+    with pytest.raises(ValueError, match="missing required keys"):
+        validate_diagnosis({"suspected_cause": "chunking problem"})
+
+    # Out of range confidence
+    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
+        validate_diagnosis({
+            "suspected_cause": "retrieval problem",
+            "evidence": "too low top_k",
+            "confidence": 1.5,
+            "recommended_experiment": "increase top_k",
+        })
+
+
+def test_fetch_diagnostic_context_and_prompt_formatting():
+    from agent.diagnose import fetch_diagnostic_context, format_diagnostic_prompt
+
+    context = fetch_diagnostic_context("v003_retrieval_sick")
+    assert context["active_version"] == "v003_retrieval_sick"
+    assert "health" in context
+    assert "baseline_config" in context
+    assert "active_config" in context
+    assert len(context["failing_queries"]) > 0
+
+    prompt = format_diagnostic_prompt(context)
+    assert "Pipeline Configurations" in prompt
+    assert "v003_retrieval_sick" in prompt
+    assert "Failing Queries Analysis" in prompt
+
+
