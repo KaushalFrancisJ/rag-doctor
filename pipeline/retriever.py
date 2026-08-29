@@ -15,13 +15,13 @@ class Retriever:
         self,
         index: VectorIndex,
         embedder: Optional[Embedder] = None,
-        default_top_k: int = 3,
+        default_top_k: Optional[int] = None,
     ):
         self.index = index
         self.embedder = embedder or Embedder(
             model_name=index.config.get("embedding_model", "all-MiniLM-L6-v2")
         )
-        self.default_top_k = default_top_k
+        self.default_top_k = default_top_k if default_top_k is not None else int(index.config.get("top_k", 3))
 
     def retrieve(
         self,

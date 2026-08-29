@@ -214,15 +214,142 @@ def configure_mcp_server(base_url: str, mcp_url: str = "http://127.0.0.1:8000/ss
         return False
 
 
+def format_fqn_model(model_spec: dict | str | None, default_provider: str = "google-gemini") -> str:
+    """Format model name into fully-qualified 'provider/model' required by TrueForge."""
+    if isinstance(model_spec, str):
+        raw_name = model_spec
+        provider = default_provider
+    elif isinstance(model_spec, dict):
+        raw_name = model_spec.get("name", "gemini-2-5-flash")
+        provider = model_spec.get("provider", default_provider)
+    else:
+        raw_name = "gemini-2-5-flash"
+        provider = default_provider
+
+    if "/" in raw_name:
+        return raw_name
+    return f"{provider}/{raw_name}"
+
+
+def register_or_update_agent(base_url: str, agent_name: str, manifest: dict) -> bool:
+    """Register or update an agent manifest with TrueForge."""
+    # First check if agent already exists
+    list_url = f"{base_url}/api/v1/agents"
+    status, resp = make_request(list_url, method="GET")
+    existing_agent_id = None
+    if status == 200 and isinstance(resp, dict) and "data" in resp:
+        for a in resp["data"]:
+            if a.get("name") == agent_name:
+                existing_agent_id = a.get("id")
+                break
+
+    if existing_agent_id:
+        # Update existing agent manifest via PUT
+        put_url = f"{base_url}/api/v1/agents/{existing_agent_id}"
+        put_status, put_resp = make_request(put_url, method="PUT", data={"manifest": manifest})
+        if put_status in (200, 201):
+            print(f"✅ Agent '{agent_name}' manifest updated successfully.")
+            return True
+        else:
+            print(f"❌ Failed to update agent '{agent_name}' ({put_status}): {put_resp}")
+            return False
+
+    # Otherwise create new agent via POST
+    post_payload = {"name": agent_name, "manifest": manifest}
+    post_status, post_resp = make_request(list_url, method="POST", data=post_payload)
+    if post_status in (200, 201):
+        print(f"✅ Agent '{agent_name}' registered successfully.")
+        return True
+    elif post_status == 409:
+        # Conflict: fetch agents list again and PUT
+        _, retry_list = make_request(list_url, method="GET")
+        if isinstance(retry_list, dict) and "data" in retry_list:
+            for a in retry_list["data"]:
+                if a.get("name") == agent_name:
+                    existing_agent_id = a.get("id")
+                    break
+        if existing_agent_id:
+            put_url = f"{base_url}/api/v1/agents/{existing_agent_id}"
+            put_status, put_resp = make_request(put_url, method="PUT", data={"manifest": manifest})
+            if put_status in (200, 201):
+                print(f"✅ Agent '{agent_name}' manifest updated successfully after conflict.")
+                return True
+            else:
+                print(f"❌ Failed to update agent '{agent_name}' after 409 ({put_status}): {put_resp}")
+                return False
+
+    print(f"❌ Failed to register agent '{agent_name}' ({post_status}): {post_resp}")
+    return False
+
+
+def configure_agents(base_url: str, config_path: str | Path | None = None) -> bool:
+    """Register RAG Doctor orchestrator and subagents from trueforge.yaml."""
+    print("\n[4/4] Registering RAG Doctor Orchestrator & Subagents...")
+    cfg_path = resolve_path(config_path or "trueforge.yaml")
+    if not cfg_path.exists():
+        print(f"❌ Config file not found at {cfg_path}.")
+        return False
+
+    try:
+        import yaml
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+
+        success = True
+
+        # 1. Register main orchestrator
+        agent_spec = data.get("agent")
+        if agent_spec:
+            agent_name = agent_spec.get("name", "rag-doctor")
+            model_fqn = format_fqn_model(agent_spec.get("model"))
+            manifest = {
+                "model": {
+                    "name": model_fqn
+                },
+                "instructions": agent_spec.get("instructions", "").strip(),
+                "mcp_servers": [
+                    {"name": s.get("name")} if isinstance(s, dict) else {"name": s}
+                    for s in agent_spec.get("mcp_servers", [])
+                ],
+                "config": agent_spec.get("config", {})
+            }
+            if not register_or_update_agent(base_url, agent_name, manifest):
+                success = False
+
+        # 2. Register subagents
+        for sub in data.get("subagents", []):
+            sub_name = sub.get("name")
+            if not sub_name:
+                continue
+            model_fqn = format_fqn_model(sub.get("model"))
+            sub_manifest = {
+                "model": {
+                    "name": model_fqn
+                },
+                "instructions": sub.get("instructions", "").strip(),
+                "mcp_servers": sub.get("mcp_servers", []),
+                "response_format": sub.get("response_format"),
+                "config": sub.get("config", {})
+            }
+            if not register_or_update_agent(base_url, f"rag-doctor-{sub_name}", sub_manifest):
+                success = False
+
+        return success
+    except Exception as e:
+        print(f"❌ Failed to register agents: {e}")
+        return False
+
+
 def main():
     # 1. Load .env before initializing CLI parser so environment variables populate defaults
     env_path = PROJECT_ROOT / ".env"
     load_env(env_path)
 
-    parser = argparse.ArgumentParser(description="Configure TrueForge with Google Gemini and Daytona Sandbox.")
+    parser = argparse.ArgumentParser(description="Configure TrueForge with Google Gemini, Daytona Sandbox, and RAG Doctor Agents.")
     parser.add_argument("--host", default=os.getenv("TRUEFORGE_HOST", "http://localhost:8790"), help="TrueForge base URL")
     parser.add_argument("--mcp-url", default=os.getenv("MCP_SERVER_URL", "http://127.0.0.1:8000/sse"), help="RAG Doctor MCP server SSE endpoint URL")
     parser.add_argument("--model-catalog", default=os.getenv("MODEL_CATALOG_PATH", "./trueforge-models.yaml"), help="Path to model catalog YAML")
+    parser.add_argument("--config-path", default=os.getenv("TRUEFORGE_CONFIG_PATH", "./trueforge.yaml"), help="Path to trueforge.yaml")
     parser.add_argument("--wait-timeout", type=int, default=30, help="Seconds to wait for TrueForge server readiness")
     args = parser.parse_args()
 
@@ -248,6 +375,9 @@ def main():
 
     # 3. MCP Server
     results.append(("RAG Doctor MCP Server", configure_mcp_server(args.host, mcp_url)))
+
+    # 4. Agents & Subagents
+    results.append(("RAG Doctor Agents", configure_agents(args.host, config_path=args.config_path)))
 
     # Evaluate results
     failures = [name for name, success in results if not success]

@@ -20,6 +20,7 @@ def main():
     parser.add_argument("--output-dir", type=str, default="indexes/v001", help="Output directory for index artifacts")
     parser.add_argument("--chunk-size", type=int, default=500, help="Target chunk size in characters")
     parser.add_argument("--overlap", type=int, default=100, help="Chunk overlap in characters")
+    parser.add_argument("--top-k", type=int, default=3, help="Default retrieval top_k")
     parser.add_argument("--model-name", type=str, default="all-MiniLM-L6-v2", help="SentenceTransformer model name")
     parser.add_argument("--version", type=str, default="v001", help="Version tag (e.g. v001)")
 
@@ -27,7 +28,7 @@ def main():
 
     print(f"=== Building FAISS Index ({args.version}) ===")
     print(f"Corpus directory: {args.corpus_dir}")
-    print(f"Chunk size: {args.chunk_size}, Overlap: {args.overlap}")
+    print(f"Chunk size: {args.chunk_size}, Overlap: {args.overlap}, Top-K: {args.top_k}")
     print(f"Embedding model: {args.model_name}")
     print(f"Output directory: {args.output_dir}")
 
@@ -52,6 +53,7 @@ def main():
         version=args.version,
         chunk_size=args.chunk_size,
         overlap=args.overlap,
+        top_k=args.top_k,
     )
 
     print(f"\nSuccessfully built and saved index to {args.output_dir}!")

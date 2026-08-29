@@ -17,7 +17,37 @@ def test_trueforge_yaml_valid():
     assert "sandbox" in data
     assert data["sandbox"]["provider"]["type"] == "daytona"
     assert "agent" in data
+    assert data["agent"]["name"] == "rag-doctor"
     assert data["agent"]["config"]["sandbox"]["enabled"] is True
+    assert data["agent"]["config"]["dynamic_sub_agents"]["enabled"] is True
+
+    # Verify subagents
+    assert "subagents" in data
+    diagnose_sub = next((s for s in data["subagents"] if s["name"] == "diagnose"), None)
+    assert diagnose_sub is not None, "Diagnose subagent must be defined in trueforge.yaml"
+    assert diagnose_sub["config"]["sandbox"]["enabled"] is False  # Read-only
+    assert diagnose_sub["config"]["dynamic_sub_agents"]["enabled"] is False
+    assert diagnose_sub["response_format"]["type"] == "json_schema"
+
+    schema = diagnose_sub["response_format"]["json_schema"]["schema"]
+    required_fields = set(schema["required"])
+    assert {"suspected_cause", "evidence", "confidence", "hypothesis", "recommended_experiment"} <= required_fields
+    assert len(schema["properties"]["suspected_cause"]["enum"]) == 7
+
+    # Verify Fix subagent
+    fix_sub = next((s for s in data["subagents"] if s["name"] == "fix"), None)
+    assert fix_sub is not None, "Fix subagent must be defined in trueforge.yaml"
+    assert fix_sub["config"]["sandbox"]["enabled"] is False
+    assert fix_sub["config"]["dynamic_sub_agents"]["enabled"] is False
+    assert fix_sub["response_format"]["type"] == "json_schema"
+
+    fix_schema = fix_sub["response_format"]["json_schema"]["schema"]
+    assert {"hypothesis", "strategy", "changes", "expected_effect", "reasoning"} <= set(fix_schema["required"])
+    assert fix_schema["properties"]["strategy"]["enum"] == ["chunking", "retrieval"]
+    changes_schema = fix_schema["properties"]["changes"]
+    assert changes_schema.get("minProperties") == 1
+    assert changes_schema["properties"]["chunk_size"]["minimum"] == 50
+    assert changes_schema["properties"]["top_k"]["minimum"] == 1
 
 
 def test_trueforge_catalogs():

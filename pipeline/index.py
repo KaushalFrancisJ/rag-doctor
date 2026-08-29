@@ -37,6 +37,7 @@ class VectorIndex:
         version: str = "v001",
         chunk_size: Optional[int] = None,
         overlap: Optional[int] = None,
+        top_k: Optional[int] = None,
         extra_config: Optional[Dict[str, Any]] = None,
     ) -> VectorIndex:
         """Build FAISS index from chunks, compute embeddings, and persist to disk.
@@ -48,6 +49,7 @@ class VectorIndex:
             version: Version tag (e.g. 'v001', 'candidate').
             chunk_size: Recorded chunk size.
             overlap: Recorded chunk overlap.
+            top_k: Recorded default retrieval top_k.
             extra_config: Additional metadata to record in config.json.
         """
         import faiss
@@ -74,13 +76,20 @@ class VectorIndex:
             "created_at": datetime.now(timezone.utc).isoformat(),
             "chunk_size": chunk_size if chunk_size is not None else chunks[0].metadata.get("chunk_size"),
             "overlap": overlap if overlap is not None else chunks[0].metadata.get("overlap"),
+        }
+        if top_k is not None:
+            config["top_k"] = top_k
+        elif extra_config and "top_k" in extra_config:
+            config["top_k"] = extra_config["top_k"]
+
+        config.update({
             "embedding_model": embedder.model_name,
             "dimension": dimension,
             "metric": "inner_product_normalized_cosine",
             "total_chunks": len(chunks),
             "total_documents": unique_docs,
             **(extra_config or {}),
-        }
+        })
 
         instance = cls(
             index=faiss_index,

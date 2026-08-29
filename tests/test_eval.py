@@ -45,7 +45,7 @@ def test_judge_parse_response_valid():
     result = judge._parse_judge_response(raw_json)
     assert result["faithfulness"] == 5
     assert result["answer_relevancy"] == 4
-    assert result["overall_score"] == 4.5
+    assert result["overall_score"] == 4
     assert "supported" in result["faithfulness_reasoning"]
     assert "concise" in result["relevancy_reasoning"]
 
@@ -61,21 +61,21 @@ def test_judge_parse_response_clamping_and_fallback():
     result = judge._parse_judge_response(raw_out_of_bounds)
     assert result["faithfulness"] == 5
     assert result["answer_relevancy"] == 1
-    assert result["overall_score"] == 3.0
+    assert result["overall_score"] == 3
 
     # Markdown codeblock wrapping
     raw_wrapped = "```json\n{\"faithfulness\": 4, \"answer_relevancy\": 4, \"faithfulness_reasoning\": \"ok\"}\n```"
     result = judge._parse_judge_response(raw_wrapped)
     assert result["faithfulness"] == 4
     assert result["answer_relevancy"] == 4
-    assert result["overall_score"] == 4.0
+    assert result["overall_score"] == 4
 
     # Invalid JSON
     raw_invalid = "This is not json at all."
     result = judge._parse_judge_response(raw_invalid)
     assert result["faithfulness"] == 1
     assert result["answer_relevancy"] == 1
-    assert result["overall_score"] == 1.0
+    assert result["overall_score"] == 1
 
 
 def test_judge_prompt_construction():
@@ -203,3 +203,291 @@ def test_v002_sick_index_isolation():
     assert v002_cfg["chunk_size"] == 70
     assert v002_cfg["overlap"] == 0
     assert v002_cfg["total_chunks"] > v001_cfg["total_chunks"]
+
+
+def test_v003_retrieval_sick_index_structure_and_isolation():
+    v001_path = Path("indexes/v001")
+    v002_sick_path = Path("indexes/v002_sick")
+    v003_path = Path("indexes/v003_retrieval_sick")
+
+    assert v001_path.exists(), "indexes/v001 must exist"
+    assert v002_sick_path.exists(), "indexes/v002_sick must exist"
+    assert v003_path.exists(), "indexes/v003_retrieval_sick must exist"
+
+    with open(v001_path / "config.json") as f:
+        v001_cfg = json.load(f)
+
+    with open(v002_sick_path / "config.json") as f:
+        v002_cfg = json.load(f)
+
+    with open(v003_path / "config.json") as f:
+        v003_cfg = json.load(f)
+
+    # v003_retrieval_sick preserves baseline chunking & corpus
+    assert v003_cfg["version"] == "v003_retrieval_sick"
+    assert v003_cfg["chunk_size"] == v001_cfg["chunk_size"] == 500
+    assert v003_cfg["overlap"] == v001_cfg["overlap"] == 100
+    assert v003_cfg["total_chunks"] == v001_cfg["total_chunks"] == 294
+    assert v003_cfg["total_documents"] == v001_cfg["total_documents"] == 13
+    assert v003_cfg["embedding_model"] == v001_cfg["embedding_model"]
+
+    # v003_retrieval_sick has retrieval degradation (top_k = 1)
+    assert v003_cfg["top_k"] == 1
+
+    # v001 and v002_sick remain untouched
+    assert v001_cfg["chunk_size"] == 500
+    assert v002_cfg["chunk_size"] == 70
+    assert v002_cfg["overlap"] == 0
+
+    # Verify evaluation results file exists and records degradation
+    v003_results_path = Path("eval/v003_retrieval_sick_results.json")
+    assert v003_results_path.exists(), "eval/v003_retrieval_sick_results.json must exist"
+
+    with open(v003_results_path, "r", encoding="utf-8") as f:
+        v003_results = json.load(f)
+
+    summary = v003_results["summary"]
+    assert summary["index_version"] == "v003_retrieval_sick"
+    assert summary["is_degraded"] is True
+    assert summary["failing_count"] > 0
+    assert len(v003_results["failing_queries"]) == summary["failing_count"]
+
+
+def test_variant_failure_distinction():
+    """Verify that v002_sick and v003_retrieval_sick represent distinct failure modes."""
+    with open("eval/sick_results.json") as f:
+        v002_results = json.load(f)
+
+    with open("eval/v003_retrieval_sick_results.json") as f:
+        v003_results = json.load(f)
+
+    # v002_sick has chunking failure: retrieved chunks have chunk_size=70
+    v002_first_fail = v002_results["failing_queries"][0]
+    v002_chunks = v002_first_fail["retrieved_chunks"]
+    assert len(v002_chunks) == 3
+    assert all(c["metadata"]["chunk_size"] == 70 for c in v002_chunks)
+    assert all(c["metadata"]["overlap"] == 0 for c in v002_chunks)
+
+    # v003_retrieval_sick has retrieval failure: only 1 chunk retrieved, but chunk_size=500
+    v003_first_fail = v003_results["failing_queries"][0]
+    v003_chunks = v003_first_fail["retrieved_chunks"]
+    assert len(v003_chunks) == 1
+    assert v003_chunks[0]["metadata"]["chunk_size"] == 500
+    assert v003_chunks[0]["metadata"]["overlap"] == 100
+
+
+def test_validate_diagnosis_valid_and_categories():
+    from agent.diagnose import validate_diagnosis, DIAGNOSIS_CATEGORIES
+
+    assert len(DIAGNOSIS_CATEGORIES) == 7
+    assert "chunking problem" in DIAGNOSIS_CATEGORIES
+    assert "retrieval problem" in DIAGNOSIS_CATEGORIES
+
+    valid_payload = {
+        "suspected_cause": "chunking problem",
+        "evidence": "Chunks cut off mid-sentence with size 70.",
+        "confidence": 0.95,
+        "hypothesis": "Small chunk size fragments context preventing proper grounding.",
+        "recommended_experiment": "increase chunk_size to 500",
+    }
+    validated = validate_diagnosis(valid_payload)
+    assert validated["suspected_cause"] == "chunking problem"
+    assert validated["confidence"] == 0.95
+    assert validated["hypothesis"] == "Small chunk size fragments context preventing proper grounding."
+
+
+def test_validate_diagnosis_invalid():
+    from agent.diagnose import validate_diagnosis
+
+    # Invalid cause
+    with pytest.raises(ValueError, match="Invalid suspected_cause"):
+        validate_diagnosis({
+            "suspected_cause": "unknown mystery problem",
+            "evidence": "Chunks cut off mid-sentence with size 70.",
+            "confidence": 0.5,
+            "hypothesis": "unknown",
+            "recommended_experiment": "try something",
+        })
+
+    # Missing keys
+    with pytest.raises(ValueError, match="missing required keys"):
+        validate_diagnosis({"suspected_cause": "chunking problem"})
+
+    # Evidence too brief
+    with pytest.raises(ValueError, match="too brief"):
+        validate_diagnosis({
+            "suspected_cause": "retrieval problem",
+            "evidence": "short",
+            "confidence": 0.5,
+            "hypothesis": "test",
+            "recommended_experiment": "test",
+        })
+
+    # Evidence unsubstantiated
+    with pytest.raises(ValueError, match="substantiated with concrete data references"):
+        validate_diagnosis({
+            "suspected_cause": "retrieval problem",
+            "evidence": "something seems very wrong here in the system",
+            "confidence": 0.5,
+            "hypothesis": "test",
+            "recommended_experiment": "test",
+        })
+
+    # Out of range confidence
+    with pytest.raises(ValueError, match="between 0.0 and 1.0"):
+        validate_diagnosis({
+            "suspected_cause": "retrieval problem",
+            "evidence": "Too low top_k with only 1 chunk retrieved from index.",
+            "confidence": 1.5,
+            "hypothesis": "insufficient chunks retrieved",
+            "recommended_experiment": "increase top_k",
+        })
+
+
+def test_fetch_diagnostic_context_and_prompt_formatting():
+    from agent.diagnose import fetch_diagnostic_context, format_diagnostic_prompt
+
+    context = fetch_diagnostic_context("v003_retrieval_sick")
+    assert context["active_version"] == "v003_retrieval_sick"
+    assert "health" in context
+    assert "baseline_config" in context
+    assert "active_config" in context
+    assert len(context["failing_queries"]) > 0
+
+    prompt = format_diagnostic_prompt(context)
+    assert "Pipeline Configurations" in prompt
+    assert "v003_retrieval_sick" in prompt
+    assert "Failing Queries Analysis" in prompt
+
+
+def test_validate_fix_experiment_valid():
+    from agent.fix import validate_fix_experiment
+
+    # Valid chunking proposal
+    chunking_payload = {
+        "hypothesis": "Increasing chunk size restores context.",
+        "strategy": "chunking",
+        "changes": {"chunk_size": 400, "overlap": 80},
+        "expected_effect": "Improve grounding.",
+        "reasoning": "Chunks were too small.",
+    }
+    val_chunk = validate_fix_experiment(chunking_payload)
+    assert val_chunk["strategy"] == "chunking"
+    assert val_chunk["changes"]["chunk_size"] == 400
+
+    # Valid retrieval proposal
+    retrieval_payload = {
+        "hypothesis": "Increasing top_k fetches more chunks.",
+        "strategy": "retrieval",
+        "changes": {"top_k": 3},
+        "expected_effect": "Improve answer coverage.",
+        "reasoning": "Only 1 chunk retrieved.",
+    }
+    val_ret = validate_fix_experiment(retrieval_payload)
+    assert val_ret["strategy"] == "retrieval"
+    assert val_ret["changes"]["top_k"] == 3
+
+
+def test_validate_fix_experiment_invalid():
+    from agent.fix import validate_fix_experiment
+
+    # Invalid strategy
+    with pytest.raises(ValueError, match="Invalid strategy"):
+        validate_fix_experiment({
+            "hypothesis": "Test",
+            "strategy": "magic_fix",
+            "changes": {"top_k": 3},
+            "expected_effect": "Nothing",
+            "reasoning": "Test",
+        })
+
+    # Disallowed parameter for retrieval
+    with pytest.raises(ValueError, match="Parameter 'chunk_size' is not allowed for strategy 'retrieval'"):
+        validate_fix_experiment({
+            "hypothesis": "Test",
+            "strategy": "retrieval",
+            "changes": {"chunk_size": 300},
+            "expected_effect": "Nothing",
+            "reasoning": "Test",
+        })
+
+    # Non-positive chunk size
+    with pytest.raises(ValueError, match="positive integer"):
+        validate_fix_experiment({
+            "hypothesis": "Test",
+            "strategy": "chunking",
+            "changes": {"chunk_size": -10},
+            "expected_effect": "Nothing",
+            "reasoning": "Test",
+        })
+
+    # Float parameter rejection
+    with pytest.raises(ValueError, match="must be an integer, got float"):
+        validate_fix_experiment({
+            "hypothesis": "Test",
+            "strategy": "retrieval",
+            "changes": {"top_k": 2.5},
+            "expected_effect": "Nothing",
+            "reasoning": "Test",
+        })
+
+    # Boolean parameter rejection
+    with pytest.raises(ValueError, match="must be an integer, got bool"):
+        validate_fix_experiment({
+            "hypothesis": "Test",
+            "strategy": "retrieval",
+            "changes": {"top_k": True},
+            "expected_effect": "Nothing",
+            "reasoning": "Test",
+        })
+
+    # Invalid chunk geometry (overlap >= chunk_size)
+    with pytest.raises(ValueError, match="Invalid chunk geometry"):
+        validate_fix_experiment({
+            "hypothesis": "Test",
+            "strategy": "chunking",
+            "changes": {"chunk_size": 100, "overlap": 100},
+            "expected_effect": "Nothing",
+            "reasoning": "Test",
+        })
+
+    # Invalid chunk geometry with active_config inheritance
+    with pytest.raises(ValueError, match="Invalid chunk geometry"):
+        validate_fix_experiment(
+            {
+                "hypothesis": "Test",
+                "strategy": "chunking",
+                "changes": {"overlap": 80},
+                "expected_effect": "Nothing",
+                "reasoning": "Test",
+            },
+            active_config={"chunk_size": 70, "overlap": 0},
+        )
+
+
+def test_judge_empty_eval_set_raises(tmp_path: Path):
+    """Verify that Judge.evaluate_rag raises ValueError on empty eval dataset."""
+    judge = Judge(api_key="mock_key")
+    empty_eval_file = tmp_path / "empty_eval.json"
+    empty_eval_file.write_text("[]", encoding="utf-8")
+
+    class DummyRetriever:
+        default_top_k = 3
+        def retrieve(self, query, top_k=None):
+            return []
+
+    class DummyGenerator:
+        model_name = "mock"
+        def generate(self, query, chunks):
+            return {"answer": ""}
+
+    with pytest.raises(ValueError, match="Evaluation dataset is empty"):
+        judge.evaluate_rag(
+            retriever=DummyRetriever(),
+            generator=DummyGenerator(),
+            eval_set_path=empty_eval_file,
+        )
+
+
+
+

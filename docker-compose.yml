@@ -46,14 +46,14 @@ services:
     volumes:
       - ./scripts:/app/scripts
       - ./.env:/app/.env
+      - ./trueforge.yaml:/app/trueforge.yaml
       - ./trueforge-models.yaml:/app/trueforge-models.yaml
+      - ./trueforge-sandbox.yaml:/app/trueforge-sandbox.yaml
+      - ./trueforge-mcp.yaml:/app/trueforge-mcp.yaml
     working_dir: /app
     command: [
-      "python",
-      "scripts/setup_trueforge.py",
-      "--host", "http://trueforge:8790",
-      "--mcp-url", "http://mcp-server:8000/sse",
-      "--wait-timeout", "60"
+      "sh", "-c",
+      "pip install --no-cache-dir pyyaml >/dev/null 2>&1 && python scripts/setup_trueforge.py --host http://trueforge:8790 --mcp-url http://mcp-server:8000/sse --config-path /app/trueforge.yaml --model-catalog /app/trueforge-models.yaml --wait-timeout 60"
     ]
     depends_on:
       - trueforge
