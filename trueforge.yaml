@@ -248,10 +248,17 @@ subagents:
               properties:
                 chunk_size:
                   type: integer
+                  minimum: 50
+                  maximum: 4000
                 overlap:
                   type: integer
+                  minimum: 0
+                  maximum: 1000
                 top_k:
                   type: integer
+                  minimum: 1
+                  maximum: 50
+              minProperties: 1
               additionalProperties: false
             expected_effect:
               type: string

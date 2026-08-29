@@ -421,5 +421,73 @@ def test_validate_fix_experiment_invalid():
             "reasoning": "Test",
         })
 
+    # Float parameter rejection
+    with pytest.raises(ValueError, match="must be an integer, got float"):
+        validate_fix_experiment({
+            "hypothesis": "Test",
+            "strategy": "retrieval",
+            "changes": {"top_k": 2.5},
+            "expected_effect": "Nothing",
+            "reasoning": "Test",
+        })
+
+    # Boolean parameter rejection
+    with pytest.raises(ValueError, match="must be an integer, got bool"):
+        validate_fix_experiment({
+            "hypothesis": "Test",
+            "strategy": "retrieval",
+            "changes": {"top_k": True},
+            "expected_effect": "Nothing",
+            "reasoning": "Test",
+        })
+
+    # Invalid chunk geometry (overlap >= chunk_size)
+    with pytest.raises(ValueError, match="Invalid chunk geometry"):
+        validate_fix_experiment({
+            "hypothesis": "Test",
+            "strategy": "chunking",
+            "changes": {"chunk_size": 100, "overlap": 100},
+            "expected_effect": "Nothing",
+            "reasoning": "Test",
+        })
+
+    # Invalid chunk geometry with active_config inheritance
+    with pytest.raises(ValueError, match="Invalid chunk geometry"):
+        validate_fix_experiment(
+            {
+                "hypothesis": "Test",
+                "strategy": "chunking",
+                "changes": {"overlap": 80},
+                "expected_effect": "Nothing",
+                "reasoning": "Test",
+            },
+            active_config={"chunk_size": 70, "overlap": 0},
+        )
+
+
+def test_judge_empty_eval_set_raises(tmp_path: Path):
+    """Verify that Judge.evaluate_rag raises ValueError on empty eval dataset."""
+    judge = Judge(api_key="mock_key")
+    empty_eval_file = tmp_path / "empty_eval.json"
+    empty_eval_file.write_text("[]", encoding="utf-8")
+
+    class DummyRetriever:
+        default_top_k = 3
+        def retrieve(self, query, top_k=None):
+            return []
+
+    class DummyGenerator:
+        model_name = "mock"
+        def generate(self, query, chunks):
+            return {"answer": ""}
+
+    with pytest.raises(ValueError, match="Evaluation dataset is empty"):
+        judge.evaluate_rag(
+            retriever=DummyRetriever(),
+            generator=DummyGenerator(),
+            eval_set_path=empty_eval_file,
+        )
+
+
 
 

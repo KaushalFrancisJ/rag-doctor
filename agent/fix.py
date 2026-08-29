@@ -48,17 +48,21 @@ Output JSON schema:
 }"""
 
 
-def validate_fix_experiment(data: Dict[str, Any]) -> Dict[str, Any]:
+def validate_fix_experiment(
+    data: Dict[str, Any],
+    active_config: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """Validate that a fix experiment output dictionary matches the strict MVP schema.
 
     Args:
         data: Parsed dictionary from fix LLM output.
+        active_config: Optional active or target pipeline configuration to check geometry against.
 
     Returns:
         Validated dictionary with correctly typed fields.
 
     Raises:
-        ValueError: If required keys are missing, strategy is invalid, or changes are malformed.
+        ValueError: If required keys are missing, strategy is invalid, geometry is invalid, or changes are malformed.
     """
     if not isinstance(data, dict):
         raise ValueError(f"Expected fix experiment data to be a dictionary, got {type(data).__name__}")
@@ -91,15 +95,29 @@ def validate_fix_experiment(data: Dict[str, Any]) -> Dict[str, Any]:
             raise ValueError(
                 f"Parameter '{key}' is not allowed for strategy '{strategy}'. Allowed: {valid_keys}"
             )
-        try:
-            int_val = int(val)
-        except (TypeError, ValueError) as e:
-            raise ValueError(f"Parameter '{key}' value must be an integer, got {val}") from e
+        if isinstance(val, bool) or not isinstance(val, int):
+            raise ValueError(f"Parameter '{key}' value must be an integer, got {type(val).__name__} ({val})")
 
-        if int_val <= 0 and key != "overlap":
+        if val <= 0 and key != "overlap":
             raise ValueError(f"Parameter '{key}' value must be a positive integer, got {val}")
-        if key == "overlap" and int_val < 0:
+        if key == "overlap" and val < 0:
             raise ValueError(f"Parameter 'overlap' must be non-negative, got {val}")
+
+    # Validate chunk geometry when strategy is chunking
+    if strategy == "chunking":
+        eff_chunk_size = changes.get("chunk_size")
+        eff_overlap = changes.get("overlap")
+
+        if eff_chunk_size is None and active_config:
+            eff_chunk_size = active_config.get("chunk_size")
+        if eff_overlap is None and active_config:
+            eff_overlap = active_config.get("overlap")
+
+        if eff_chunk_size is not None and eff_overlap is not None:
+            if eff_overlap >= eff_chunk_size:
+                raise ValueError(
+                    f"Invalid chunk geometry: overlap ({eff_overlap}) must be strictly less than chunk_size ({eff_chunk_size})."
+                )
 
     expected_effect = str(data["expected_effect"]).strip()
     if not expected_effect:
@@ -143,6 +161,7 @@ def format_fix_prompt(
 
 def run_local_fix(
     diagnosis: Dict[str, Any],
+    index_version: Optional[str] = None,
     baseline_config: Optional[Dict[str, Any]] = None,
     active_config: Optional[Dict[str, Any]] = None,
     api_key: Optional[str] = None,
@@ -150,6 +169,8 @@ def run_local_fix(
 ) -> Dict[str, Any]:
     """Lightweight local smoke-test runner for fix agent experiment formulation."""
     from mcp_server import get_active_version, get_baseline_version, get_pipeline_config
+
+    target_ver = index_version or get_active_version()
 
     if baseline_config is None:
         base_ver = get_baseline_version()
@@ -159,9 +180,8 @@ def run_local_fix(
             baseline_config = {"chunk_size": 500, "overlap": 100, "top_k": 3}
 
     if active_config is None:
-        act_ver = get_active_version()
         try:
-            active_config = json.loads(get_pipeline_config(act_ver))
+            active_config = json.loads(get_pipeline_config(target_ver))
         except Exception:
             active_config = {}
 
@@ -175,39 +195,15 @@ def run_local_fix(
             "note": "GROQ_API_KEY not set. Returning prompt without LLM inference.",
         }
 
-    from groq import Groq
+    from pipeline.llm_client import LLMClient
 
-    model = model_name or os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-    client = Groq(api_key=key)
-
-    max_retries = 5
-    response = None
-    for attempt in range(max_retries):
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": FIX_SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.0,
-                response_format={"type": "json_object"},
-            )
-            break
-        except Exception as e:
-            err_str = str(e).lower()
-            if ("rate_limit" in err_str or "429" in err_str or "retry" in err_str) and attempt < max_retries - 1:
-                wait_sec = 4.0 * (attempt + 1)
-                time.sleep(wait_sec)
-            else:
-                raise
-
-    if response:
-        content = response.choices[0].message.content or "{}"
-        parsed = json.loads(content)
-        return validate_fix_experiment(parsed)
-
-    return {}
+    llm = LLMClient(api_key=key, model_name=model_name)
+    messages = [
+        {"role": "system", "content": FIX_SYSTEM_PROMPT},
+        {"role": "user", "content": prompt},
+    ]
+    parsed = llm.complete_json(messages, temperature=0.0)
+    return validate_fix_experiment(parsed, active_config=active_config)
 
 
 if __name__ == "__main__":
@@ -223,5 +219,5 @@ if __name__ == "__main__":
 
     if diag.get("suspected_cause"):
         print(f"\n--- Running Fix Subagent on {diag['suspected_cause']} ---")
-        fix_result = run_local_fix(diag)
+        fix_result = run_local_fix(diag, index_version=target_index)
         print(json.dumps(fix_result, indent=2))

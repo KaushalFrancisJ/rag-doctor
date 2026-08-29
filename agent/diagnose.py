@@ -257,37 +257,15 @@ def run_local_diagnose(
             "note": "GROQ_API_KEY not set. Returning extracted context without LLM inference.",
         }
 
-    from groq import Groq
+    from pipeline.llm_client import LLMClient
 
-    model = model_name or os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-    client = Groq(api_key=key)
-
-    max_retries = 5
-    response = None
-    for attempt in range(max_retries):
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": DIAGNOSIS_SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt},
-                ],
-                temperature=0.0,
-                response_format={"type": "json_object"},
-            )
-            break
-        except Exception as e:
-            err_str = str(e).lower()
-            if ("rate_limit" in err_str or "429" in err_str or "retry" in err_str) and attempt < max_retries - 1:
-                wait_sec = 4.0 * (attempt + 1)
-                time.sleep(wait_sec)
-            else:
-                raise
-
-    if response:
-        content = response.choices[0].message.content or "{}"
-        parsed = json.loads(content)
-        return validate_diagnosis(parsed)
+    llm = LLMClient(api_key=key, model_name=model_name)
+    messages = [
+        {"role": "system", "content": DIAGNOSIS_SYSTEM_PROMPT},
+        {"role": "user", "content": prompt},
+    ]
+    parsed = llm.complete_json(messages, temperature=0.0)
+    return validate_diagnosis(parsed)
 
     return {}
 

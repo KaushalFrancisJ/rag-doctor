@@ -44,6 +44,10 @@ def test_trueforge_yaml_valid():
     fix_schema = fix_sub["response_format"]["json_schema"]["schema"]
     assert {"hypothesis", "strategy", "changes", "expected_effect", "reasoning"} <= set(fix_schema["required"])
     assert fix_schema["properties"]["strategy"]["enum"] == ["chunking", "retrieval"]
+    changes_schema = fix_schema["properties"]["changes"]
+    assert changes_schema.get("minProperties") == 1
+    assert changes_schema["properties"]["chunk_size"]["minimum"] == 50
+    assert changes_schema["properties"]["top_k"]["minimum"] == 1
 
 
 def test_trueforge_catalogs():

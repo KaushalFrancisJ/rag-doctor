@@ -8,12 +8,11 @@ import re
 import time
 from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
+from pipeline.llm_client import DEFAULT_MODEL as DEFAULT_GROQ_MODEL
 
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-
-DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b"
 
 RAG_SYSTEM_PROMPT = """You are a precise technical documentation assistant.
 Answer the user's question based strictly on the provided context retrieved from the official FastAPI documentation.

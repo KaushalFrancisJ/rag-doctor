@@ -25,10 +25,10 @@ from dotenv import load_dotenv
 from pipeline.generator import Generator
 from pipeline.index import VectorIndex
 from pipeline.retriever import Retriever
+from pipeline.llm_client import DEFAULT_MODEL as DEFAULT_JUDGE_MODEL
 
 load_dotenv()
 
-DEFAULT_JUDGE_MODEL = "openai/gpt-oss-120b"
 DEFAULT_THRESHOLD = 3.5
 
 JUDGE_SYSTEM_PROMPT = """You are an expert impartial evaluation judge for Retrieval-Augmented Generation (RAG) systems.
@@ -226,6 +226,9 @@ class Judge:
         eval_path = Path(eval_set_path)
         with open(eval_path, "r", encoding="utf-8") as f:
             eval_set = json.load(f)
+
+        if not eval_set:
+            raise ValueError("Evaluation dataset is empty. Cannot evaluate RAG pipeline without evaluation queries.")
 
         effective_k = top_k if top_k is not None else getattr(retriever, "default_top_k", 3)
         results: List[Dict[str, Any]] = []
