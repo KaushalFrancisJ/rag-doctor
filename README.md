@@ -2,7 +2,7 @@
 
 Self-healing RAG pipeline agent built for the TrueForge Hackathon.
 
-RAG Doctor continuously monitors a RAG pipeline's answer quality using an LLM-as-judge, diagnoses root causes when quality degrades, tests fixes inside an isolated sandbox, and promotes verified candidate indices to active production only upon human approval.
+RAG Doctor continuously monitors a RAG pipeline's answer quality using an LLM-as-judge, diagnoses root causes when quality degrades, tests fixes inside an isolated Daytona sandbox, and promotes verified candidate indices to active production only upon human approval.
 
 ---
 
@@ -31,16 +31,25 @@ rag-doctor/
 │   └── generator.py          # Groq LLM answer generation with retry backoff
 ├── agent/                    # TrueForge agent orchestrator & subagents
 │   └── diagnose.py           # Diagnose subagent (MCP client + Groq reasoning)
+├── trueforge.yaml            # Unified TrueForge agent, model & sandbox configuration
+├── trueforge-models.yaml     # TrueForge model presets catalog (Google Gemini)
+├── trueforge-sandbox.yaml    # TrueForge sandbox presets catalog (Daytona)
+├── trueforge-mcp.yaml        # TrueForge MCP connector catalog
 ├── mcp_server.py             # Local MCP server (stdio & SSE transport)
+├── Dockerfile.mcp            # Dockerfile for RAG Doctor MCP server & python runtime
+├── Dockerfile.trueforge      # Dockerfile for TrueForge agent harness
+├── docker-compose.yml        # All-in-one Docker orchestration
 ├── sandbox_scripts/          # Sandbox remediation scripts
 ├── scripts/
 │   ├── build_index.py        # CLI script to build and version indices
 │   ├── prototype_diagnosis.py# Prototype LLM diagnosis reasoning
 │   ├── query.py              # Interactive / CLI query tool
+│   ├── setup_trueforge.py    # Auto-bootstrap TrueForge runtime settings & API keys
 │   └── smoke_test.py         # End-to-end pipeline smoke test
 ├── tests/
 │   ├── test_pipeline.py      # Pipeline unit & integration tests
-│   └── test_eval.py          # Eval harness & index isolation tests
+│   ├── test_eval.py          # Eval harness & index isolation tests
+│   └── test_trueforge_config.py # TrueForge configuration & compose validation tests
 ├── requirements.txt
 ├── .env.example
 ├── AGENTS.md
@@ -51,17 +60,7 @@ rag-doctor/
 
 ## Setup & Quickstart
 
-### 1. Environment Setup
-
-Using Python 3.12:
-
-```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 2. Environment Variables
+### 1. Environment Variables
 
 Create `.env` from `.env.example`:
 
@@ -69,14 +68,26 @@ Create `.env` from `.env.example`:
 cp .env.example .env
 ```
 
-Configure your Groq API key in `.env`:
+Configure your API keys in `.env`:
 
 ```env
+# TrueForge Agent Model Configuration (Google Gemini Native Provider)
+GEMINI_API_KEY=your_actual_gemini_api_key_here
+
+# TrueForge Sandbox Configuration (Daytona Sandbox Provider)
+DAYTONA_API_KEY=your_actual_daytona_api_key_here
+
+# TrueForge YAML Catalog Paths
+MODEL_CATALOG_PATH=./trueforge-models.yaml
+SANDBOX_CATALOG_PATH=./trueforge-sandbox.yaml
+MCP_CATALOG_PATH=./trueforge-mcp.yaml
+
+# Groq API Configuration (for Patient RAG & LLM-as-judge)
 GROQ_API_KEY=gsk_your_actual_groq_api_key_here
 GROQ_MODEL=openai/gpt-oss-120b
 ```
 
-### 3. Active Index State (`indexes/active.json`)
+### 2. Active Index State (`indexes/active.json`)
 
 RAG Doctor uses a dynamic state pointer file (`indexes/active.json`) to track which index is currently monitored and which is the known-good baseline:
 
@@ -92,27 +103,62 @@ RAG Doctor uses a dynamic state pointer file (`indexes/active.json`) to track wh
 
 ---
 
-## TrueForge MCP Integration
+## Option A: Run with Docker Compose (All-in-One)
 
-RAG Doctor exposes a custom Model Context Protocol (MCP) server that TrueForge connects to over **SSE (Server-Sent Events)** or **stdio**.
+To spin up the entire system (RAG Doctor MCP server, TrueForge agent harness with Gemini + Daytona, and automatic settings bootstrap) with a single command:
 
-### 1. Start the MCP Server
+```bash
+docker compose up
+```
 
-Start the server in SSE mode on port 8000:
+This starts:
+- **`rag-doctor-mcp`**: RAG Doctor MCP server on `http://localhost:8000/sse`
+- **`rag-doctor-trueforge`**: TrueForge UI & Agent server on `http://localhost:8790`
+- **`rag-doctor-init`**: One-shot bootstrap container that configures Gemini, Daytona, and MCP credentials
+
+Once started, open **`http://localhost:8790`** in your browser to interact with the Doctor.
+
+---
+
+## Option B: Run Locally (Multi-Terminal)
+
+### 1. Python Environment Setup
+
+Using Python 3.12:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2. Start the RAG Doctor MCP Server
+
+Start the MCP server in SSE mode on port 8000:
 
 ```bash
 .venv/bin/python mcp_server.py --transport sse --port 8000
 ```
 
-### 2. Connect TrueForge to MCP
+### 3. Start TrueForge Agent Server
 
-In the TrueForge Agent / MCP configuration:
-- **Transport**: SSE / HTTP URL
-- **URL**: `http://127.0.0.1:8000/sse` *(or `http://localhost:8000/sse`)*
+In a separate terminal:
 
-*(If TrueForge is running in the cloud, expose port 8000 via a tunnel like `ngrok http 8000` and use `https://your-subdomain.ngrok-free.app/sse`).*
+```bash
+npx @truefoundry/trueforge
+```
 
-### 3. Exposed MCP Tools
+### 4. Auto-Configure TrueForge Settings
+
+Once TrueForge is running, run the bootstrap script to automatically register your Gemini model provider, Daytona sandbox, and MCP connector:
+
+```bash
+python scripts/setup_trueforge.py
+```
+
+---
+
+## Exposed MCP Tools
 
 | MCP Tool | Description |
 |---|---|
@@ -193,5 +239,3 @@ python scripts/query.py --index indexes/v001 --query "How do background tasks wo
 ```bash
 pytest
 ```
-
-
