@@ -230,3 +230,134 @@ def test_mcp_tools_v003_retrieval_sick():
     assert len(failed) > 0
     assert all(len(q["retrieved_chunks"]) == 1 for q in failed)
 
+
+def test_mcp_generic_version_resolution(tmp_path: Path, monkeypatch):
+    """Verify that arbitrary versions (e.g. 'exp_001') resolve generically without special-case branches."""
+    from mcp_server import (
+        inspect_rag_health,
+        get_pipeline_config,
+        get_evaluation_results,
+        get_failed_queries,
+        inspect_retrieval,
+        get_active_version,
+        get_baseline_version,
+    )
+    import mcp_server
+
+    # Create dummy arbitrary index version
+    exp_version = "exp_001"
+    exp_index_dir = Path("indexes") / exp_version
+    exp_index_dir.mkdir(parents=True, exist_ok=True)
+
+    exp_eval_file = Path("eval") / f"{exp_version}_results.json"
+    exp_active_file = Path("indexes") / "active.json"
+
+    # Backup original active.json if exists
+    original_active = exp_active_file.read_text(encoding="utf-8") if exp_active_file.exists() else None
+
+    try:
+        # 1. Create exp_001 config & index
+        class MockEmbedder:
+            model_name = "all-MiniLM-L6-v2"
+            def embed_texts(self, texts, **kwargs):
+                return np.ones((len(texts), 384), dtype=np.float32)
+            def embed_query(self, query):
+                return np.ones((384,), dtype=np.float32)
+            @property
+            def dimension(self):
+                return 384
+
+        chunks = [Chunk(id="exp_c1", content="Arbitrary experiment content", metadata={"source": "exp.md"})]
+        VectorIndex.build(
+            chunks=chunks,
+            embedder=MockEmbedder(),
+            save_dir=exp_index_dir,
+            version=exp_version,
+            chunk_size=420,
+            overlap=42,
+            top_k=2,
+        )
+
+        # 2. Create exp_001 eval results
+        eval_payload = {
+            "summary": {
+                "index_version": exp_version,
+                "evaluated_at": "2026-08-29T12:00:00Z",
+                "total_queries": 1,
+                "avg_faithfulness": 4.0,
+                "avg_answer_relevancy": 4.0,
+                "avg_overall_score": 4.0,
+                "threshold": 3.5,
+                "passing_count": 0,
+                "failing_count": 1,
+                "is_degraded": True,
+            },
+            "failing_queries": [
+                {
+                    "id": "exp_q1",
+                    "question": "What is exp?",
+                    "expected_answer": "Exp answer",
+                    "generated_answer": "Generated exp",
+                    "retrieved_chunks": [{"chunk_id": "exp_c1", "content": "Arbitrary experiment content", "metadata": {}}],
+                    "faithfulness": 4,
+                    "answer_relevancy": 4,
+                    "overall_score": 4.0,
+                    "passed": False,
+                }
+            ],
+            "results": [],
+        }
+        with open(exp_eval_file, "w", encoding="utf-8") as f:
+            json.dump(eval_payload, f, indent=2)
+
+        # 3. Test generic resolution for get_pipeline_config
+        cfg = json.loads(get_pipeline_config(exp_version))
+        assert cfg["version"] == exp_version
+        assert cfg["chunk_size"] == 420
+        assert cfg["overlap"] == 42
+        assert cfg["top_k"] == 2
+
+        # 4. Test generic resolution for get_evaluation_results
+        eval_res = json.loads(get_evaluation_results(exp_version))
+        assert eval_res["index_version"] == exp_version
+        assert eval_res["is_degraded"] is True
+
+        # 5. Test generic resolution for get_failed_queries
+        failed = json.loads(get_failed_queries(exp_version))
+        assert len(failed) == 1
+        assert failed[0]["id"] == "exp_q1"
+
+        # 6. Test generic resolution for inspect_retrieval
+        retrieved = json.loads(inspect_retrieval("test query", index_version=exp_version))
+        assert len(retrieved) == 1
+        assert retrieved[0]["chunk_id"] == "exp_c1"
+
+        # 7. Test generic resolution for inspect_rag_health with explicit version
+        health = json.loads(inspect_rag_health(exp_version))
+        assert health["active_monitored_index"] == exp_version
+        assert health["status"] == "DEGRADED"
+        assert exp_version in health["available_index_versions"]
+
+        # 8. Test active.json resolution when active_version is set to exp_version
+        with open(exp_active_file, "w", encoding="utf-8") as f:
+            json.dump({"active_version": exp_version, "baseline_version": "v001"}, f)
+
+        assert get_active_version() == exp_version
+        assert get_baseline_version() == "v001"
+
+        # Default inspect_rag_health() should pick up active_version from active.json
+        active_health = json.loads(inspect_rag_health())
+        assert active_health["active_monitored_index"] == exp_version
+        assert active_health["status"] == "DEGRADED"
+
+    finally:
+        # Cleanup arbitrary test artifacts
+        if exp_eval_file.exists():
+            exp_eval_file.unlink()
+        if exp_index_dir.exists():
+            import shutil
+            shutil.rmtree(exp_index_dir)
+        if original_active is not None:
+            exp_active_file.write_text(original_active, encoding="utf-8")
+
+

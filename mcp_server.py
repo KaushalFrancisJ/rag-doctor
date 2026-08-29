@@ -16,38 +16,28 @@ from pipeline.retriever import Retriever
 # Initialize MCPServer
 mcp = MCPServer("rag-doctor")
 
-def get_active_version() -> str:
-    """Read the active index version from indexes/active.json, fallback to v001."""
+def get_active_state() -> dict:
+    """Read active and baseline index configuration from indexes/active.json."""
     active_file = PROJECT_ROOT / "indexes" / "active.json"
     if active_file.exists():
         try:
-            with open(active_file, "r") as f:
-                data = json.load(f)
-                return data.get("active_version", "v001")
+            with open(active_file, "r", encoding="utf-8") as f:
+                return json.load(f)
         except Exception:
             pass
-    return "v001"
+    return {"active_version": "v001", "baseline_version": "v001"}
+
+def get_active_version() -> str:
+    """Read the active index version from indexes/active.json, fallback to v001."""
+    return get_active_state().get("active_version", "v001")
 
 def get_baseline_version() -> str:
     """Read the baseline index version from indexes/active.json, fallback to v001."""
-    active_file = PROJECT_ROOT / "indexes" / "active.json"
-    if active_file.exists():
-        try:
-            with open(active_file, "r") as f:
-                data = json.load(f)
-                return data.get("baseline_version", "v001")
-        except Exception:
-            pass
-    return "v001"
+    return get_active_state().get("baseline_version", "v001")
 
 def _get_results_file(index_version: str) -> Path:
-    """Helper to locate evaluation results for an index version."""
-    if index_version == "v001":
-        return PROJECT_ROOT / "eval" / "baseline_results.json"
-    elif index_version == "v002_sick":
-        return PROJECT_ROOT / "eval" / "sick_results.json"
-    else:
-        return PROJECT_ROOT / "eval" / f"{index_version}_results.json"
+    """Helper to locate evaluation results for an index version by convention."""
+    return PROJECT_ROOT / "eval" / f"{index_version}_results.json"
 
 @mcp.tool()
 def inspect_rag_health(index_version: str = "") -> str:
