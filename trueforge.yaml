@@ -45,17 +45,6 @@ models:
             - low
             - medium
             - high
-    additional_providers:
-      - type: openai
-        base_url: http://host.docker.internal:4000
-        auth:
-          api_key_env: OPENAI_API_KEY
-        models:
-          - model_id: nvidia-nemotron-lightning
-            name: nvidia-nemotron-lightning
-            properties:
-              context_length: 1000000
-              max_output_tokens: 65536
 
 # ----------------------------------------------------
 # 2. Sandbox Provider Configuration (Daytona)
@@ -98,10 +87,14 @@ agent:
        - Subagent name: `fix`
        - Task input: "Formulate an isolated candidate experiment specification based on the diagnosis and configurations."
     4. Review the candidate experiment specification (`strategy`, `changes`, `hypothesis`).
-    5. Build and evaluate the isolated candidate index by calling the MCP tool `create_experiment`:
-       - Parameters: `strategy` ('chunking' or 'retrieval'), `output_version` (e.g. 'exp_001'), `chunk_size`, `overlap`, or `top_k`.
-       - `create_experiment` builds the isolated FAISS candidate index in `indexes/<candidate_version>` and runs the evaluation harness against held-out queries, returning `candidate_score`, score deltas, and `regressions`.
-    6. Review the evaluation comparison results returned by `create_experiment` (or `compare_experiments`).
+    5. Execute the candidate experiment and evaluation inside the TrueForge Sandbox:
+       - Run the isolated remediation in the sandbox environment:
+         `python sandbox_scripts/remediate.py --strategy <strategy> --chunk-size <chunk_size> --overlap <overlap> --output-version <candidate_version>`
+       - Run candidate evaluation in the sandbox against held-out queries:
+         `python -m eval.compare --candidate-version <candidate_version>`
+       - (Or invoke the candidate experiment runner `create_experiment` with candidate parameters).
+       - All experimentation, re-chunking, re-embedding, and evaluation occur strictly inside the isolated sandbox and never touch the active index.
+    6. Review the candidate evaluation comparison results (baseline score, degraded score, candidate score, deltas, regressions).
     7. Before requesting approval, present the structured candidate summary to the user:
        - suspected cause
        - evidence

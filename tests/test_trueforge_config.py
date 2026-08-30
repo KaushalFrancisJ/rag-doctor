@@ -63,16 +63,6 @@ def test_trueforge_catalogs():
         m_data = yaml.safe_load(f)
         assert "providers" in m_data
         assert any(p["type"] == "google-gemini" for p in m_data["providers"])
-        
-        # Verify openai-compatible provider for nvidia-nim-litellm
-        nim_provider = next((p for p in m_data["providers"] if p.get("type") == "openai"), None)
-        assert nim_provider is not None, "openai provider for nvidia-nim-litellm must be in trueforge-models.yaml"
-        
-        nim_models = nim_provider.get("models", [])
-        assert any(m["model_id"] == "nvidia-nemotron-lightning" for m in nim_models)
-        nemotron = next(m for m in nim_models if m["model_id"] == "nvidia-nemotron-lightning")
-        assert nemotron["name"] == "nvidia-nemotron-lightning"
-        assert nemotron["properties"]["context_length"] == 1000000
 
     with open(sandbox_catalog, "r", encoding="utf-8") as f:
         s_data = yaml.safe_load(f)
@@ -105,7 +95,7 @@ def test_docker_compose_valid():
     assert "volumes" in compose_data
     assert "trueforge-data" in compose_data["volumes"]
     tf_volumes = compose_data["services"]["trueforge"].get("volumes", [])
-    assert any("trueforge-data:/root/.trueforge" in str(v) for v in tf_volumes)
+    assert any("trueforge-data:/root/.local/share/trueforge" in str(v) for v in tf_volumes)
 
 
 def test_setup_script_model_loader(monkeypatch, tmp_path):
