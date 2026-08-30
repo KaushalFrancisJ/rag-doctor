@@ -58,7 +58,7 @@ def inspect_rag_health(index_version: str = "") -> str:
     baseline_score = None
     if baseline_eval.exists():
         try:
-            with open(baseline_eval, "r") as f:
+            with open(baseline_eval, "r", encoding="utf-8") as f:
                 b_data = json.load(f)
                 baseline_score = b_data.get("summary", {}).get("avg_overall_score")
         except Exception:
@@ -69,7 +69,7 @@ def inspect_rag_health(index_version: str = "") -> str:
     active_summary = {}
     if active_eval.exists():
         try:
-            with open(active_eval, "r") as f:
+            with open(active_eval, "r", encoding="utf-8") as f:
                 c_data = json.load(f)
                 active_summary = c_data.get("summary", {})
         except Exception:
@@ -103,7 +103,7 @@ def get_evaluation_results(index_version: str = "") -> str:
         return f"Error: Evaluation results for '{ver}' not found at {results_file}. Available index versions: {available}"
 
     try:
-        with open(results_file, "r") as f:
+        with open(results_file, "r", encoding="utf-8") as f:
             data = json.load(f)
         return json.dumps(data.get("summary", {}), indent=2)
     except Exception as e:
@@ -124,7 +124,7 @@ def get_failed_queries(index_version: str = "") -> str:
         return f"Error: Evaluation results for '{ver}' not found at {results_file}. Available index versions: {available}"
 
     try:
-        with open(results_file, "r") as f:
+        with open(results_file, "r", encoding="utf-8") as f:
             data = json.load(f)
         return json.dumps(data.get("failing_queries", []), indent=2)
     except Exception as e:
@@ -153,6 +153,43 @@ def inspect_retrieval(query: str, index_version: str = "", top_k: int = 0) -> st
         return f"Error inspecting retrieval: {e}"
 
 @mcp.tool()
+def compare_experiments(candidate_version: str, current_version: str = "", baseline_version: str = "") -> str:
+    """
+    Compare a candidate experiment's evaluation results against the current active
+    (or specified) degraded index and the baseline index.
+    Returns structured JSON with baseline_score, current_score, candidate_score,
+    delta_vs_current, delta_vs_baseline, candidate_better, and regressions.
+    """
+    from eval.compare import compare_evaluation_reports, load_evaluation_report
+
+    cand_ver = candidate_version.strip()
+    curr_ver = current_version.strip() if current_version.strip() else get_active_version()
+    base_ver = baseline_version.strip() if baseline_version.strip() else get_baseline_version()
+
+    try:
+        cand_report = load_evaluation_report(cand_ver)
+    except Exception as e:
+        return f"Error loading candidate evaluation for '{cand_ver}': {e}"
+
+    try:
+        curr_report = load_evaluation_report(curr_ver)
+    except Exception as e:
+        return f"Error loading current evaluation for '{curr_ver}': {e}"
+
+    try:
+        base_report = load_evaluation_report(base_ver)
+    except Exception:
+        base_report = curr_report
+
+    comparison = compare_evaluation_reports(
+        candidate_report=cand_report,
+        current_report=curr_report,
+        baseline_report=base_report,
+    )
+    return json.dumps(comparison, indent=2)
+
+
+@mcp.tool()
 def get_pipeline_config(index_version: str = "") -> str:
     """
     Get the pipeline configuration (chunk size, overlap, embedding model, etc.)
@@ -166,7 +203,7 @@ def get_pipeline_config(index_version: str = "") -> str:
         return f"Error: Config for '{ver}' not found at {config_file}. Available index versions: {available}"
 
     try:
-        with open(config_file, "r") as f:
+        with open(config_file, "r", encoding="utf-8") as f:
             config = json.load(f)
         return json.dumps(config, indent=2)
     except Exception as e:

@@ -157,8 +157,8 @@ def test_remediate_active_index_isolation_and_protection(mock_corpus_and_indexes
 
     monkeypatch.setattr("sandbox_scripts.remediate.Embedder", MockEmbedder)
 
-    v001_config_before = (env["v001_dir"] / "config.json").read_text()
-    v001_chunks_before = (env["v001_dir"] / "chunks.json").read_text()
+    v001_config_before = (env["v001_dir"] / "config.json").read_text(encoding="utf-8")
+    v001_chunks_before = (env["v001_dir"] / "chunks.json").read_text(encoding="utf-8")
     v001_faiss_before = (env["v001_dir"] / "index.faiss").read_bytes()
 
     # 1. Attempting to overwrite baseline v001 must raise ValueError
@@ -174,7 +174,7 @@ def test_remediate_active_index_isolation_and_protection(mock_corpus_and_indexes
         )
 
     # 2. Set active version to a custom version 'v002_custom' and test active overwrite protection
-    env["active_json"].write_text(json.dumps({"active_version": "v002_custom", "baseline_version": "v001"}))
+    env["active_json"].write_text(json.dumps({"active_version": "v002_custom", "baseline_version": "v001"}), encoding="utf-8")
     with pytest.raises(ValueError, match="Cannot overwrite currently active version 'v002_custom'"):
         execute_remediation(
             strategy="chunking",
@@ -189,7 +189,7 @@ def test_remediate_active_index_isolation_and_protection(mock_corpus_and_indexes
 
     # 3. Valid candidate execution preserves active state exactly
     # Reset active to v001
-    env["active_json"].write_text(json.dumps({"active_version": "v001", "baseline_version": "v001"}))
+    env["active_json"].write_text(json.dumps({"active_version": "v001", "baseline_version": "v001"}), encoding="utf-8")
     execute_remediation(
         strategy="chunking",
         output_version="exp_iso_001",
@@ -201,11 +201,11 @@ def test_remediate_active_index_isolation_and_protection(mock_corpus_and_indexes
     )
 
     # Assert active.json and v001 contents are 100% untouched
-    active_data = json.loads(env["active_json"].read_text())
+    active_data = json.loads(env["active_json"].read_text(encoding="utf-8"))
     assert active_data["active_version"] == "v001"
 
-    assert (env["v001_dir"] / "config.json").read_text() == v001_config_before
-    assert (env["v001_dir"] / "chunks.json").read_text() == v001_chunks_before
+    assert (env["v001_dir"] / "config.json").read_text(encoding="utf-8") == v001_config_before
+    assert (env["v001_dir"] / "chunks.json").read_text(encoding="utf-8") == v001_chunks_before
     assert (env["v001_dir"] / "index.faiss").read_bytes() == v001_faiss_before
 
 

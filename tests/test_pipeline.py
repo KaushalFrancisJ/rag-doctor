@@ -94,7 +94,7 @@ def test_vector_index_build_save_load(tmp_path: Path):
     assert (index_dir / "chunks.json").exists()
     assert (index_dir / "config.json").exists()
 
-    with open(index_dir / "config.json") as f:
+    with open(index_dir / "config.json", encoding="utf-8") as f:
         config = json.load(f)
     assert config["version"] == "v001"
     assert config["chunk_size"] == 300
@@ -132,7 +132,7 @@ def test_candidate_isolation(tmp_path: Path):
         version="active_v001",
     )
 
-    active_config_before = (active_dir / "config.json").read_text()
+    active_config_before = (active_dir / "config.json").read_text(encoding="utf-8")
 
     candidate_chunks = [
         Chunk(id="candidate_1", content="Candidate content 1", metadata={}),
@@ -145,7 +145,7 @@ def test_candidate_isolation(tmp_path: Path):
         version="candidate_exp01",
     )
 
-    active_config_after = (active_dir / "config.json").read_text()
+    active_config_after = (active_dir / "config.json").read_text(encoding="utf-8")
     assert active_config_before == active_config_after
     assert len(VectorIndex.load(active_dir).chunks) == 1
     assert len(VectorIndex.load(candidate_dir).chunks) == 2
@@ -181,10 +181,10 @@ def test_active_index_preservation_during_candidate_build(tmp_path: Path, monkey
 
     active_json_file = indexes_root / "active.json"
     active_state_initial = {"active_version": "v001", "baseline_version": "v001"}
-    active_json_file.write_text(json.dumps(active_state_initial, indent=2))
+    active_json_file.write_text(json.dumps(active_state_initial, indent=2), encoding="utf-8")
 
-    active_config_snapshot = (active_dir / "config.json").read_text()
-    active_chunks_snapshot = (active_dir / "chunks.json").read_text()
+    active_config_snapshot = (active_dir / "config.json").read_text(encoding="utf-8")
+    active_chunks_snapshot = (active_dir / "chunks.json").read_text(encoding="utf-8")
     active_faiss_bytes = (active_dir / "index.faiss").read_bytes()
 
     # 2. Build candidate index exp_002
@@ -202,12 +202,12 @@ def test_active_index_preservation_during_candidate_build(tmp_path: Path, monkey
     )
 
     # 3. Assert active.json and active index remain 100% preserved
-    active_state_after = json.loads(active_json_file.read_text())
+    active_state_after = json.loads(active_json_file.read_text(encoding="utf-8"))
     assert active_state_after["active_version"] == "v001"
     assert active_state_after["baseline_version"] == "v001"
 
-    assert (active_dir / "config.json").read_text() == active_config_snapshot
-    assert (active_dir / "chunks.json").read_text() == active_chunks_snapshot
+    assert (active_dir / "config.json").read_text(encoding="utf-8") == active_config_snapshot
+    assert (active_dir / "chunks.json").read_text(encoding="utf-8") == active_chunks_snapshot
     assert (active_dir / "index.faiss").read_bytes() == active_faiss_bytes
 
     # Assert candidate was built in its own isolated directory
