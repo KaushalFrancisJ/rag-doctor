@@ -275,10 +275,11 @@ RAG Doctor supports routing custom models (such as `nvidia-nemotron-lightning`, 
 
 ## 🛠️ MCP Tools Reference
 
-The RAG Doctor MCP Server exposes 9 controlled tools adhering to strict least-privilege principles:
+The RAG Doctor MCP Server exposes 10 controlled tools adhering to strict least-privilege principles:
 
 | MCP Tool | Description |
 |---|---|
+| `query_rag_pipeline` | Asks any question directly to the Patient RAG pipeline on active or specified index, returning generated answer & chunks. |
 | `inspect_rag_health` | Returns health status (`DEGRADED`/`HEALTHY`), active vs baseline score, failing query counts, and available indices. |
 | `get_pipeline_config` | Returns chunk size, overlap, and embedding parameters for a specified index version (defaults to active). |
 | `get_failed_queries` | Returns failing questions with ground-truth answers, generated responses, and retrieved chunks. |

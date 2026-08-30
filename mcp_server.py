@@ -152,6 +152,43 @@ def inspect_retrieval(query: str, index_version: str = "", top_k: int = 0) -> st
     except Exception as e:
         return f"Error inspecting retrieval: {e}"
 
+
+@mcp.tool()
+def query_rag_pipeline(query: str, index_version: str = "", top_k: int = 0) -> str:
+    """
+    Ask a question directly to the Patient RAG pipeline.
+    Retrieves context from the active (or specified) vector index and generates an answer using Groq.
+    Returns the generated answer, the index version used, and retrieved chunk references.
+    """
+    from pipeline.generator import Generator
+
+    ver = index_version.strip() if index_version.strip() else get_active_version()
+    index_dir = PROJECT_ROOT / "indexes" / ver
+    if not index_dir.exists():
+        indexes_dir = PROJECT_ROOT / "indexes"
+        available = [d.name for d in indexes_dir.iterdir() if d.is_dir()] if indexes_dir.exists() else []
+        return f"Error: Index version '{ver}' not found. Available versions: {available}"
+
+    try:
+        index = VectorIndex.load(index_dir)
+        effective_k = top_k if top_k > 0 else int(index.config.get("top_k", 3))
+        retriever = Retriever(index=index, default_top_k=effective_k)
+        chunks = retriever.retrieve(query, top_k=effective_k)
+
+        generator = Generator()
+        res = generator.generate(query=query, retrieved_chunks=chunks)
+
+        return json.dumps({
+            "index_version": ver,
+            "query": query,
+            "answer": res.get("answer", ""),
+            "retrieved_chunks_count": len(chunks),
+            "sources": [c.get("metadata", {}).get("relative_path", "unknown") for c in chunks],
+            "chunks": chunks,
+        }, indent=2)
+    except Exception as e:
+        return f"Error querying RAG pipeline: {e}"
+
 @mcp.tool()
 def compare_experiments(candidate_version: str, current_version: str = "", baseline_version: str = "") -> str:
     """
