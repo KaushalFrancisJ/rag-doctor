@@ -205,10 +205,26 @@ def test_promote_candidate_lifecycle(mock_environment):
     assert file_meta["candidate_version"] == "exp_001"
 
 
-def test_promote_candidate_non_existent_raises(mock_environment):
-    """Verify promote_candidate raises FileNotFoundError for invalid version."""
-    with pytest.raises(FileNotFoundError, match="does not exist"):
-        promote_candidate("non_existent_candidate_999", indexes_dir=mock_environment["indexes_dir"])
+def test_promote_candidate_auto_rebuilds_when_missing(mock_environment, monkeypatch):
+    """Verify promote_candidate automatically builds and promotes candidate index when not on disk."""
+    env = mock_environment
+    monkeypatch.setattr("sandbox_scripts.remediate.Embedder", env["MockEmbedder"])
+
+    # Attempt promoting candidate that was created in sandbox (not yet on disk)
+    meta = '{"strategy": "chunking", "changes": {"chunk_size": 150, "overlap": 20}}'
+    promo_res = promote_candidate("v002_sick_modified", indexes_dir=env["indexes_dir"], metadata=meta)
+
+    assert promo_res["status"] == "PROMOTED"
+    assert promo_res["candidate_version"] == "v002_sick_modified"
+    assert (env["indexes_dir"] / "v002_sick_modified" / "index.faiss").exists()
+    assert (env["indexes_dir"] / "v002_sick_modified" / "config.json").exists()
+
+    cfg = json.loads((env["indexes_dir"] / "v002_sick_modified" / "config.json").read_text(encoding="utf-8"))
+    assert cfg["chunk_size"] == 150
+    assert cfg["overlap"] == 20
+
+    active_data = json.loads(env["active_file"].read_text(encoding="utf-8"))
+    assert active_data["active_version"] == "v002_sick_modified"
 
 
 def test_discard_candidate_leaves_active_untouched(mock_environment):

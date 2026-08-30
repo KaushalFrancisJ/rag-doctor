@@ -89,22 +89,86 @@ def format_approval_presentation(
     )
 
 
+def _extract_experiment_params(
+    metadata: Optional[Union[Dict[str, Any], str]] = None,
+    candidate_version: str = "",
+    current_active_version: str = "v001",
+) -> Dict[str, Any]:
+    """Extract or infer remediation strategy and parameters for candidate index reconstruction."""
+    strategy = "chunking"
+    chunk_size = None
+    overlap = None
+    top_k = None
+
+    meta_dict: Dict[str, Any] = {}
+    if isinstance(metadata, dict):
+        meta_dict = metadata
+    elif isinstance(metadata, str) and metadata.strip():
+        try:
+            meta_dict = json.loads(metadata)
+        except Exception:
+            import re
+            m_cs = re.search(r"(?:chunk_size|size|chars)\s*[:=]?\s*(\d+)", metadata, re.IGNORECASE)
+            if m_cs:
+                chunk_size = int(m_cs.group(1))
+            m_ov = re.search(r"overlap\s*[:=]?\s*(\d+)", metadata, re.IGNORECASE)
+            if m_ov:
+                overlap = int(m_ov.group(1))
+            m_tk = re.search(r"top_k\s*[:=]?\s*(\d+)", metadata, re.IGNORECASE)
+            if m_tk:
+                top_k = int(m_tk.group(1))
+                strategy = "retrieval"
+
+    if meta_dict:
+        exp = meta_dict.get("experiment", meta_dict.get("proposed_remediation", meta_dict))
+        if isinstance(exp, dict):
+            strategy = exp.get("strategy", strategy)
+            changes = exp.get("changes", exp)
+            if isinstance(changes, dict):
+                chunk_size = changes.get("chunk_size", chunk_size)
+                overlap = changes.get("overlap", overlap)
+                top_k = changes.get("top_k", top_k)
+
+    cand_lower = candidate_version.lower()
+    if top_k is None and ("retrieval" in cand_lower or "top_k" in cand_lower or "v003" in current_active_version):
+        strategy = "retrieval"
+        top_k = 3
+
+    if strategy == "chunking":
+        if chunk_size is None:
+            import re
+            m_num = re.search(r"(\d{2,4})", candidate_version)
+            if m_num and int(m_num.group(1)) not in (1, 2, 3):
+                chunk_size = int(m_num.group(1))
+            else:
+                chunk_size = 500
+        if overlap is None:
+            overlap = min(100, max(0, int(chunk_size * 0.2)))
+
+    return {
+        "strategy": strategy,
+        "chunk_size": chunk_size,
+        "overlap": overlap,
+        "top_k": top_k or 3,
+    }
+
+
 def promote_candidate(
     candidate_version: str,
     indexes_dir: str | Path = "indexes",
-    metadata: Optional[Dict[str, Any]] = None,
+    metadata: Optional[Union[Dict[str, Any], str]] = None,
 ) -> Dict[str, Any]:
     """Promote candidate index to active status after explicit human approval.
 
     - Updates indexes/active.json with new active_version, preserving previous_active_version.
+    - If the candidate index directory does not exist on the machine (e.g. built in an isolated sandbox),
+      automatically builds/recreates it on the machine filesystem.
     - Appends promotion record to history.
     - Preserves previous active index directory on disk (never deletes previous versions).
     - Records promotion metadata in indexes/<candidate_version>/promotion_metadata.json.
     """
     indexes_path = Path(indexes_dir)
     cand_dir = indexes_path / candidate_version
-    if not cand_dir.exists():
-        raise FileNotFoundError(f"Candidate index directory '{cand_dir}' does not exist.")
 
     active_file = indexes_path / "active.json"
     active_data: Dict[str, Any] = {}
@@ -117,6 +181,35 @@ def promote_candidate(
 
     prev_active = active_data.get("active_version", "v001")
     baseline_ver = active_data.get("baseline_version", "v001")
+
+    # If candidate directory is not present on the host/container filesystem, build it on the machine
+    if not cand_dir.exists():
+        params = _extract_experiment_params(
+            metadata=metadata,
+            candidate_version=candidate_version,
+            current_active_version=prev_active,
+        )
+
+        corpus_src = indexes_path.parent / "corpus" / "active"
+        if not corpus_src.exists():
+            corpus_src = PROJECT_ROOT / "corpus" / "active"
+
+        corpus_work = indexes_path.parent / "corpus" / "candidate"
+        if not corpus_work.parent.exists():
+            corpus_work = PROJECT_ROOT / "corpus" / "candidate"
+
+        execute_remediation(
+            strategy=params["strategy"],
+            source_index=prev_active,
+            output_version=candidate_version,
+            chunk_size=params.get("chunk_size"),
+            overlap=params.get("overlap"),
+            top_k=params.get("top_k"),
+            corpus_source_dir=corpus_src,
+            corpus_working_dir=corpus_work,
+            indexes_root_dir=indexes_path,
+        )
+
     now_iso = datetime.now(timezone.utc).isoformat()
 
     history = active_data.get("history", [])

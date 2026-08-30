@@ -45,6 +45,17 @@ models:
             - low
             - medium
             - high
+    additional_providers:
+      - type: openai
+        base_url: http://host.docker.internal:4000
+        auth:
+          api_key_env: OPENAI_API_KEY
+        models:
+          - model_id: nvidia-nemotron-lightning
+            name: nvidia-nemotron-lightning
+            properties:
+              context_length: 1000000
+              max_output_tokens: 65536
 
 # ----------------------------------------------------
 # 2. Sandbox Provider Configuration (Daytona)
@@ -87,8 +98,10 @@ agent:
        - Subagent name: `fix`
        - Task input: "Formulate an isolated candidate experiment specification based on the diagnosis and configurations."
     4. Review the candidate experiment specification (`strategy`, `changes`, `hypothesis`).
-    5. Execute the re-chunking/re-indexing fix inside the Daytona sandbox to build an isolated candidate index.
-    6. Re-evaluate the candidate index in the sandbox and compare results with `compare_experiments`.
+    5. Build and evaluate the isolated candidate index by calling the MCP tool `create_experiment`:
+       - Parameters: `strategy` ('chunking' or 'retrieval'), `output_version` (e.g. 'exp_001'), `chunk_size`, `overlap`, or `top_k`.
+       - `create_experiment` builds the isolated FAISS candidate index in `indexes/<candidate_version>` and runs the evaluation harness against held-out queries, returning `candidate_score`, score deltas, and `regressions`.
+    6. Review the evaluation comparison results returned by `create_experiment` (or `compare_experiments`).
     7. Before requesting approval, present the structured candidate summary to the user:
        - suspected cause
        - evidence
@@ -104,6 +117,8 @@ agent:
          - Call `promote_experiment` with candidate_version to promote candidate, update `indexes/active.json`, preserve previous active version, and record promotion metadata.
        - If REJECTED:
          - Call `discard_experiment` with candidate_version to discard candidate and leave active untouched.
+       - If the user requests to revert or rollback to baseline:
+         - Call `rollback_experiment(target_version="v001")`.
        - Never promote automatically without human approval.
   config:
     sandbox:
