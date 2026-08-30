@@ -31,6 +31,10 @@ services:
       - MODEL_CATALOG_PATH=/app/trueforge-models.yaml
       - SANDBOX_CATALOG_PATH=/app/trueforge-sandbox.yaml
       - MCP_CATALOG_PATH=/app/trueforge-mcp.yaml
+    volumes:
+      - trueforge-data:/root/.trueforge
+      - ./indexes:/app/indexes
+      - ./corpus:/app/corpus
     ports:
       - "127.0.0.1:8790:8790"
     depends_on:
@@ -59,3 +63,7 @@ services:
       - trueforge
       - mcp-server
     restart: "no"
+
+volumes:
+  trueforge-data:
+

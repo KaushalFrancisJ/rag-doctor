@@ -91,6 +91,12 @@ def test_docker_compose_valid():
     tf_ports = compose_data["services"]["trueforge"].get("ports", [])
     assert any("127.0.0.1:8790" in p for p in tf_ports)
 
+    # Ensure persistent trueforge-data volume is mounted to preserve chats and database
+    assert "volumes" in compose_data
+    assert "trueforge-data" in compose_data["volumes"]
+    tf_volumes = compose_data["services"]["trueforge"].get("volumes", [])
+    assert any("trueforge-data:/root/.trueforge" in str(v) for v in tf_volumes)
+
 
 def test_setup_script_model_loader(monkeypatch, tmp_path):
     from scripts.setup_trueforge import load_models_from_catalog
