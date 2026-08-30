@@ -243,6 +243,7 @@ def create_experiment(
             eval_set_path=PROJECT_ROOT / "eval" / "eval_set.json",
             output_report_path=cand_eval_output,
             top_k=top_k if top_k > 0 else None,
+            eval_limit=6,
         )
         comparison["remediation_result"] = remed_res
         return json.dumps(comparison, indent=2)

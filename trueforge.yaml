@@ -88,11 +88,13 @@ agent:
        - Task input: "Formulate an isolated candidate experiment specification based on the diagnosis and configurations."
     4. Review the candidate experiment specification (`strategy`, `changes`, `hypothesis`).
     5. Execute the candidate experiment and evaluation inside the TrueForge Sandbox:
+       - If the sandbox workspace is fresh/empty, clone the repository:
+         `git clone https://github.com/KaushalFrancisJ/rag-doctor.git /workspace/rag-doctor && cd /workspace/rag-doctor`
        - Run the isolated remediation in the sandbox environment:
          `python sandbox_scripts/remediate.py --strategy <strategy> --chunk-size <chunk_size> --overlap <overlap> --output-version <candidate_version>`
        - Run candidate evaluation in the sandbox against held-out queries:
          `python -m eval.compare --candidate-version <candidate_version>`
-       - (Or invoke the candidate experiment runner `create_experiment` with candidate parameters).
+       - (Alternatively, call the candidate experiment runner `create_experiment` via MCP which has the full environment pre-loaded).
        - All experimentation, re-chunking, re-embedding, and evaluation occur strictly inside the isolated sandbox and never touch the active index.
     6. Review the candidate evaluation comparison results (baseline score, degraded score, candidate score, deltas, regressions).
     7. Before requesting approval, present the structured candidate summary to the user:

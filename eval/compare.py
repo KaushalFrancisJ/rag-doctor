@@ -209,6 +209,7 @@ def evaluate_and_compare_candidate(
     threshold: float = 3.5,
     output_report_path: Optional[Union[str, Path]] = None,
     top_k: Optional[int] = None,
+    eval_limit: Optional[int] = None,
     generator_model: Optional[str] = None,
     judge_model: Optional[str] = None,
     judge: Optional[Judge] = None,
@@ -226,6 +227,7 @@ def evaluate_and_compare_candidate(
         threshold: Score threshold for degradation checks.
         output_report_path: Optional path to persist candidate evaluation report JSON.
         top_k: Optional top_k override.
+        eval_limit: Optional limit on evaluation query count for fast trial runs.
         generator_model: Groq model name for generation.
         judge_model: Groq model name for judging.
         judge: Optional pre-configured Judge instance (useful for unit testing / mocking).
@@ -267,6 +269,7 @@ def evaluate_and_compare_candidate(
             threshold=threshold,
             output_path=output_report_path,
             top_k=eff_k,
+            eval_limit=eval_limit,
         )
     else:
         cand_report = evaluate_index(
@@ -275,6 +278,7 @@ def evaluate_and_compare_candidate(
             threshold=threshold,
             output_path=output_report_path,
             top_k=top_k,
+            eval_limit=eval_limit,
             generator_model=generator_model,
             judge_model=judge_model,
         )
