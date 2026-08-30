@@ -1,0 +1,146 @@
+# LiteLLM Configuration for TrueForge & NVIDIA NIM
+# ------------------------------------------------
+# Run with: litellm --config config.yaml --host 0.0.0.0 --port 4000
+
+litellm_settings:
+  drop_params: true
+  include_reasoning: false
+  stream_reasoning: false
+  enable_reasoning_extraction: false
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
+  enable_reasoning_extraction: false
+
+router_settings:
+  routing_strategy: least-busy
+  num_retries: 3
+  retry_after: 0.1
+  allowed_fails: 2
+  cooldown_time: 0.1
+  enable_pre_call_checks: true
+
+model_list:
+  # Using openai/ prefix routes via standard OpenAI SSE streaming (eliminating response.reasoning_summary_text.delta errors)
+  # Key Set 1
+  - model_name: nvidia-nemotron-lightning
+    litellm_params:
+      rpm: 40
+      model: openai/nvidia/nemotron-3.5-lightning-30b-a3b
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY1
+      drop_params: true
+      include_reasoning: false
+      additional_drop_params: ["context_management", "output_config"]
+
+  - model_name: nvidia-deepseek-ultra
+    litellm_params:
+      rpm: 40
+      model: openai/deepseek-ai/deepseek-v4-flash
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY1
+      drop_params: true
+      include_reasoning: false
+      additional_drop_params: ["context_management", "output_config"]
+
+  - model_name: nvidia-nemotron-nano
+    litellm_params:
+      rpm: 40
+      model: openai/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY1
+      drop_params: true
+      include_reasoning: false
+      additional_drop_params: ["context_management", "output_config"]
+
+  - model_name: nvidia-kimi-omni
+    litellm_params:
+      rpm: 40
+      model: openai/moonshotai/kimi-k2.6
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY1
+      drop_params: true
+      include_reasoning: false
+      additional_drop_params: ["context_management", "output_config"]
+
+  # Key Set 2
+  - model_name: nvidia-nemotron-lightning
+    litellm_params:
+      rpm: 40
+      model: openai/nvidia/nemotron-3.5-lightning-30b-a3b
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY2
+      drop_params: true
+      include_reasoning: false
+      additional_drop_params: ["context_management", "output_config"]
+
+  - model_name: nvidia-deepseek-ultra
+    litellm_params:
+      rpm: 40
+      model: openai/deepseek-ai/deepseek-v4-flash
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY2
+      drop_params: true
+      include_reasoning: false
+      additional_drop_params: ["context_management", "output_config"]
+
+  - model_name: nvidia-nemotron-nano
+    litellm_params:
+      rpm: 40
+      model: openai/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY2
+      drop_params: true
+      include_reasoning: false
+      additional_drop_params: ["context_management", "output_config"]
+
+  - model_name: nvidia-kimi-omni
+    litellm_params:
+      rpm: 40
+      model: openai/moonshotai/kimi-k2.6
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY2
+      drop_params: true
+      include_reasoning: false
+      additional_drop_params: ["context_management", "output_config"]
+
+  # Key Set 3
+  - model_name: nvidia-nemotron-lightning
+    litellm_params:
+      rpm: 40
+      model: openai/nvidia/nemotron-3.5-lightning-30b-a3b
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY3
+      drop_params: true
+      include_reasoning: false
+      additional_drop_params: ["context_management", "output_config"]
+
+  - model_name: nvidia-deepseek-ultra
+    litellm_params:
+      rpm: 40
+      model: openai/deepseek-ai/deepseek-v4-flash
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY3
+      drop_params: true
+      include_reasoning: false
+      additional_drop_params: ["context_management", "output_config"]
+
+  - model_name: nvidia-nemotron-nano
+    litellm_params:
+      rpm: 40
+      model: openai/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY3
+      drop_params: true
+      include_reasoning: false
+      additional_drop_params: ["context_management", "output_config"]
+
+  - model_name: nvidia-kimi-omni
+    litellm_params:
+      rpm: 40
+      model: openai/moonshotai/kimi-k2.6
+      api_base: https://integrate.api.nvidia.com/v1
+      api_key: os.environ/NVIDIA_API_KEY3
+      drop_params: true
+      include_reasoning: false
+      additional_drop_params: ["context_management", "output_config"]

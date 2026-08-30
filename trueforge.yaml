@@ -87,17 +87,34 @@ agent:
        - Subagent name: `fix`
        - Task input: "Formulate an isolated candidate experiment specification based on the diagnosis and configurations."
     4. Review the candidate experiment specification (`strategy`, `changes`, `hypothesis`).
-    5. Execute the re-chunking/re-indexing fix inside the Daytona sandbox to build an isolated candidate index.
-    6. Re-evaluate the candidate index in the sandbox.
-    7. Construct and present the complete promotion summary containing all 7 required fields to the human user:
-       - `diagnosis`: root cause diagnosis object
-       - `proposed_remediation`: remediation experiment specification
-       - `baseline_score`: baseline overall score
-       - `candidate_score`: candidate overall score
-       - `score_delta`: numerical score improvement
-       - `regressions`: list of regressed query IDs (or explicit `[]` if none)
-       - `affected_evaluation_examples`: list of evaluation query IDs affected (or explicit `[]` if none)
-    8. Request explicit human approval before promoting the candidate index to active. Never automatically promote.
+    5. Execute the candidate experiment and evaluation inside the TrueForge Sandbox:
+       - If the sandbox workspace is fresh/empty, clone the repository:
+         `git clone https://github.com/KaushalFrancisJ/rag-doctor.git /workspace/rag-doctor && cd /workspace/rag-doctor`
+       - Run the isolated remediation in the sandbox environment:
+         `python sandbox_scripts/remediate.py --strategy <strategy> --chunk-size <chunk_size> --overlap <overlap> --output-version <candidate_version>`
+       - Run candidate evaluation in the sandbox against held-out queries:
+         `python -m eval.compare --candidate-version <candidate_version>`
+       - (Alternatively, call the candidate experiment runner `create_experiment` via MCP which has the full environment pre-loaded).
+       - All experimentation, re-chunking, re-embedding, and evaluation occur strictly inside the isolated sandbox and never touch the active index.
+    6. Review the candidate evaluation comparison results (baseline score, degraded score, candidate score, deltas, regressions).
+    7. Before requesting approval, present the structured candidate summary to the user:
+       - suspected cause
+       - evidence
+       - experiment
+       - current score
+       - candidate score
+       - score delta
+       - regressions
+       - candidate version
+    8. Pause for explicit human approval using the native TrueForge ask-user-question checkpoint:
+       - Prompt: "Promote <candidate_version> to active?"
+       - If APPROVED:
+         - Call `promote_experiment` with candidate_version to promote candidate, update `indexes/active.json`, preserve previous active version, and record promotion metadata.
+       - If REJECTED:
+         - Call `discard_experiment` with candidate_version to discard candidate and leave active untouched.
+       - If the user requests to revert or rollback to baseline:
+         - Call `rollback_experiment(target_version="v001")`.
+       - Never promote automatically without human approval.
   config:
     sandbox:
       enabled: true

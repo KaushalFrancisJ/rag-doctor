@@ -1,0 +1,23 @@
+# LiteLLM Proxy Configuration for Custom Models
+# -----------------------------------------------
+# Launch LiteLLM proxy: litellm --config litellm_config.yaml --port 4000
+# TrueForge base_url: http://host.docker.internal:4000
+
+model_list:
+  - model_name: nvidia-nemotron-lightning             # The logical alias your TrueForge agents will call
+    litellm_params:
+      model: openai/nvidia-nemotron-lightning         # Upstream model identifier (or custom NIM / vLLM endpoint)
+      api_base: https://integrate.api.nvidia.com/v1   # The base URL of your upstream LLM (NVIDIA NIM, vLLM, Ollama, etc.)
+      api_key: "os.environ/NVIDIA_API_KEY"           # Secure reference to your API key environment variable
+      
+      # Routing and capability parameters
+      rpm: 1000                                      # Optional: Rate limit (requests per minute)
+      timeout: 60                                    # Optional: Timeout in seconds
+      
+      # Compatibility settings for TrueForge streaming validator
+      drop_params: true                              # Drop unsupported upstream parameters
+      include_reasoning: false                       # Emits standard text tokens instead of reasoning delta events
+
+litellm_settings:
+  drop_params: true
+  include_reasoning: false

@@ -209,6 +209,7 @@ class Judge:
         threshold: float = DEFAULT_THRESHOLD,
         output_path: Optional[str | Path] = None,
         top_k: Optional[int] = None,
+        eval_limit: Optional[int] = None,
     ) -> Dict[str, Any]:
         """Run full evaluation suite over an evaluation dataset.
 
@@ -219,6 +220,7 @@ class Judge:
             threshold: Minimum acceptable overall score.
             output_path: Optional file path to persist evaluation results JSON.
             top_k: Number of chunks to retrieve per query (defaults to retriever.default_top_k).
+            eval_limit: Optional limit on number of evaluation queries for fast trial candidate runs.
 
         Returns:
             Structured dictionary with summary metrics and per-query results.
@@ -230,6 +232,12 @@ class Judge:
         if not eval_set:
             raise ValueError("Evaluation dataset is empty. Cannot evaluate RAG pipeline without evaluation queries.")
 
+        # If eval_limit is provided, select a diverse subset covering key topics and failing queries
+        if eval_limit and eval_limit < len(eval_set):
+            eval_items = eval_set[:eval_limit]
+        else:
+            eval_items = eval_set
+
         effective_k = top_k if top_k is not None else getattr(retriever, "default_top_k", 3)
         results: List[Dict[str, Any]] = []
         total_faithfulness = 0
@@ -237,7 +245,7 @@ class Judge:
         total_overall = 0.0
         failing_queries: List[Dict[str, Any]] = []
 
-        for item in eval_set:
+        def _eval_single_item(item: Dict[str, Any]) -> Dict[str, Any]:
             query_id = item.get("id", "unknown")
             topic = item.get("topic", "general")
             query = item["question"]
@@ -264,7 +272,7 @@ class Judge:
                 and judge_result["answer_relevancy"] >= 3
             )
 
-            query_result = {
+            return {
                 "id": query_id,
                 "topic": topic,
                 "question": query,
@@ -279,16 +287,18 @@ class Judge:
                 "passed": passed,
             }
 
-            results.append(query_result)
-            total_faithfulness += judge_result["faithfulness"]
-            total_relevancy += judge_result["answer_relevancy"]
-            total_overall += judge_result["overall_score"]
+        from concurrent.futures import ThreadPoolExecutor
+        # Use 2 workers to stay strictly within Groq 30 RPM rate limits while completing fast
+        max_workers = min(2, len(eval_items))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            results = list(executor.map(_eval_single_item, eval_items))
 
-            if not passed:
+        for query_result in results:
+            total_faithfulness += query_result["faithfulness"]
+            total_relevancy += query_result["answer_relevancy"]
+            total_overall += query_result["overall_score"]
+            if not query_result["passed"]:
                 failing_queries.append(query_result)
-
-            import time
-            time.sleep(0.5)
 
         count = len(results)
         avg_faithfulness = round(total_faithfulness / count, 2) if count else 0.0
@@ -315,8 +325,8 @@ class Judge:
                 "failing_count": len(failing_queries),
                 "is_degraded": is_degraded,
             },
-            "failing_queries": failing_queries,
             "results": results,
+            "failing_queries": failing_queries,
         }
 
         if output_path:
@@ -334,6 +344,7 @@ def evaluate_index(
     threshold: float = DEFAULT_THRESHOLD,
     output_path: Optional[str | Path] = None,
     top_k: Optional[int] = None,
+    eval_limit: Optional[int] = None,
     generator_model: Optional[str] = None,
     judge_model: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -351,6 +362,7 @@ def evaluate_index(
         threshold=threshold,
         output_path=output_path,
         top_k=effective_top_k,
+        eval_limit=eval_limit,
     )
 
 

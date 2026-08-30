@@ -133,32 +133,78 @@ def wait_for_server_readiness(base_url: str, timeout_seconds: int = 15) -> bool:
 
 
 def configure_model_provider(base_url: str, gemini_api_key: str, catalog_path: str | Path | None = None) -> bool:
-    """Configure native Google Gemini model provider."""
-    print("\n[1/3] Configuring Google Gemini Model Provider...")
-    if not gemini_api_key or gemini_api_key == "your_gemini_api_key_here":
-        print("❌ GEMINI_API_KEY is not set or placeholder. Please update .env.")
-        return False
+    """Configure model providers (Google Gemini and custom providers such as nvidia-nim-litellm) from catalog."""
+    print("\n[1/3] Configuring Model Providers...")
 
-    models = load_models_from_catalog(catalog_path)
+    raw_path = catalog_path or os.getenv("MODEL_CATALOG_PATH") or "trueforge-models.yaml"
+    resolved_path = resolve_path(raw_path)
+
+    providers_to_register = []
+    if resolved_path.exists():
+        try:
+            import yaml
+            with open(resolved_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                providers_to_register = data.get("providers", [])
+        except Exception as e:
+            print(f"Warning: Could not parse model catalog at {resolved_path}: {e}")
+
+    if not providers_to_register:
+        providers_to_register = [
+            {
+                "type": "google-gemini",
+                "base_url": "https://generativelanguage.googleapis.com/v1beta",
+                "models": load_models_from_catalog(catalog_path),
+            }
+        ]
+
     url = f"{base_url}/api/v1/settings/model-providers"
-    payload = {
-        "manifest": {
-            "type": "google-gemini",
-            "base_url": "https://generativelanguage.googleapis.com/v1beta",
-            "auth": {
-                "api_key": gemini_api_key
-            },
-            "models": models
-        }
-    }
+    overall_success = True
 
-    status, resp = make_request(url, method="PUT", data=payload)
-    if status in (200, 201):
-        print("✅ Google Gemini provider configured successfully.")
-        return True
-    else:
-        print(f"❌ Failed to configure Gemini provider ({status}): {resp}")
-        return False
+    for provider in providers_to_register:
+        p_type = provider.get("type")
+        p_name = provider.get("name", p_type)
+        p_models = provider.get("models", [])
+        p_base_url = provider.get("base_url")
+
+        if p_type == "google-gemini":
+            if not gemini_api_key or gemini_api_key == "your_gemini_api_key_here":
+                print(f"⚠️  GEMINI_API_KEY is not set or placeholder. Skipping {p_name}.")
+                continue
+            payload = {
+                "manifest": {
+                    "type": "google-gemini",
+                    "base_url": p_base_url or "https://generativelanguage.googleapis.com/v1beta",
+                    "auth": {
+                        "api_key": gemini_api_key
+                    },
+                    "models": p_models
+                }
+            }
+        elif p_type == "openai" or "litellm" in str(p_name):
+            api_key = os.getenv("NVIDIA_API_KEY") or os.getenv("OPENAI_API_KEY") or os.getenv("CUSTOM_MODEL_API_KEY") or "default-key"
+            payload = {
+                "manifest": {
+                    "type": "openai",
+                    "base_url": p_base_url or "http://host.docker.internal:4000",
+                    "auth": {
+                        "api_key": api_key
+                    },
+                    "models": p_models
+                }
+            }
+        else:
+            payload = {"manifest": provider}
+
+        status, resp = make_request(url, method="PUT", data=payload)
+        if status in (200, 201):
+            print(f"✅ Model provider '{p_name}' ({p_type}) configured successfully.")
+        else:
+            print(f"❌ Failed to configure model provider '{p_name}' ({status}): {resp}")
+            if p_type == "google-gemini":
+                overall_success = False
+
+    return overall_success
 
 
 def configure_sandbox_provider(base_url: str, daytona_api_key: str) -> bool:

@@ -189,10 +189,10 @@ def test_v002_sick_index_isolation():
     assert v001_path.exists(), "indexes/v001 must exist"
     assert v002_sick_path.exists(), "indexes/v002_sick must exist"
 
-    with open(v001_path / "config.json") as f:
+    with open(v001_path / "config.json", encoding="utf-8") as f:
         v001_cfg = json.load(f)
 
-    with open(v002_sick_path / "config.json") as f:
+    with open(v002_sick_path / "config.json", encoding="utf-8") as f:
         v002_cfg = json.load(f)
 
     assert v001_cfg["version"] == "v001"
@@ -214,13 +214,13 @@ def test_v003_retrieval_sick_index_structure_and_isolation():
     assert v002_sick_path.exists(), "indexes/v002_sick must exist"
     assert v003_path.exists(), "indexes/v003_retrieval_sick must exist"
 
-    with open(v001_path / "config.json") as f:
+    with open(v001_path / "config.json", encoding="utf-8") as f:
         v001_cfg = json.load(f)
 
-    with open(v002_sick_path / "config.json") as f:
+    with open(v002_sick_path / "config.json", encoding="utf-8") as f:
         v002_cfg = json.load(f)
 
-    with open(v003_path / "config.json") as f:
+    with open(v003_path / "config.json", encoding="utf-8") as f:
         v003_cfg = json.load(f)
 
     # v003_retrieval_sick preserves baseline chunking & corpus
@@ -255,10 +255,10 @@ def test_v003_retrieval_sick_index_structure_and_isolation():
 
 def test_variant_failure_distinction():
     """Verify that v002_sick and v003_retrieval_sick represent distinct failure modes."""
-    with open("eval/sick_results.json") as f:
+    with open("eval/sick_results.json", encoding="utf-8") as f:
         v002_results = json.load(f)
 
-    with open("eval/v003_retrieval_sick_results.json") as f:
+    with open("eval/v003_retrieval_sick_results.json", encoding="utf-8") as f:
         v003_results = json.load(f)
 
     # v002_sick has chunking failure: retrieved chunks have chunk_size=70
