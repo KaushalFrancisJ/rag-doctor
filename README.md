@@ -251,6 +251,28 @@ Open **`http://localhost:8790`** in your browser.
 
 ---
 
+## ⚡ Optional: Custom Model Provider (NVIDIA NIM via LiteLLM Proxy)
+
+RAG Doctor supports routing custom models (such as `nvidia-nemotron-lightning`, `deepseek-v4-flash`, or `kimi-k2.6`) via an OpenAI-compatible LiteLLM proxy:
+
+- **LiteLLM Proxy Repository**: [https://github.com/KaushalFrancisJ/litellm-proxy-nvidia-nim](https://github.com/KaushalFrancisJ/litellm-proxy-nvidia-nim)
+
+![NVIDIA NIM LiteLLM Configuration](images/nvidia-nim-litellm-config.png)
+
+### Setting Up the Proxy
+
+1. Clone and launch the proxy from [litellm-proxy-nvidia-nim](https://github.com/KaushalFrancisJ/litellm-proxy-nvidia-nim):
+   ```bash
+   litellm --config config.yaml --host 0.0.0.0 --port 4000
+   ```
+2. In TrueForge UI (`http://localhost:8790`):
+   - Navigate to **Settings → Model Providers → Add Provider**.
+   - Select **OpenAI (Compatible)**.
+   - Set **Base URL**: `http://host.docker.internal:4000` (if running TrueForge in Docker) or `http://localhost:4000` (if running locally).
+   - Add model: `nvidia-nemotron-lightning` with context length `1000000` and max tokens `65536`.
+
+---
+
 ## 🛠️ MCP Tools Reference
 
 The RAG Doctor MCP Server exposes 9 controlled tools adhering to strict least-privilege principles:
