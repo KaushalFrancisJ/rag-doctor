@@ -237,7 +237,7 @@ class Judge:
         total_overall = 0.0
         failing_queries: List[Dict[str, Any]] = []
 
-        for item in eval_set:
+        def _eval_single_item(item: Dict[str, Any]) -> Dict[str, Any]:
             query_id = item.get("id", "unknown")
             topic = item.get("topic", "general")
             query = item["question"]
@@ -264,7 +264,7 @@ class Judge:
                 and judge_result["answer_relevancy"] >= 3
             )
 
-            query_result = {
+            return {
                 "id": query_id,
                 "topic": topic,
                 "question": query,
@@ -279,16 +279,18 @@ class Judge:
                 "passed": passed,
             }
 
-            results.append(query_result)
-            total_faithfulness += judge_result["faithfulness"]
-            total_relevancy += judge_result["answer_relevancy"]
-            total_overall += judge_result["overall_score"]
+        from concurrent.futures import ThreadPoolExecutor
+        # Evaluate queries concurrently (5 workers) for fast sub-15s evaluation
+        max_workers = min(5, len(eval_set))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            results = list(executor.map(_eval_single_item, eval_set))
 
-            if not passed:
+        for query_result in results:
+            total_faithfulness += query_result["faithfulness"]
+            total_relevancy += query_result["answer_relevancy"]
+            total_overall += query_result["overall_score"]
+            if not query_result["passed"]:
                 failing_queries.append(query_result)
-
-            import time
-            time.sleep(0.5)
 
         count = len(results)
         avg_faithfulness = round(total_faithfulness / count, 2) if count else 0.0
