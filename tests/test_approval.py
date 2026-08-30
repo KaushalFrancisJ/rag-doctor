@@ -14,7 +14,7 @@ from agent.orchestrator import (
     run_healing_cycle,
 )
 from eval.judge import Judge
-from mcp_server import discard_experiment, promote_experiment, rollback_experiment
+from mcp_server import create_experiment, discard_experiment, promote_experiment, rollback_experiment
 from pipeline.chunker import Chunk
 from pipeline.index import VectorIndex
 
@@ -297,6 +297,35 @@ def test_mcp_promotion_and_rollback_tools(mock_environment, monkeypatch):
     discard_raw = discard_experiment("exp_001", reason="Testing discard")
     discard_data = json.loads(discard_raw)
     assert discard_data["status"] == "DISCARDED"
+
+    # 4. Create experiment via MCP
+    monkeypatch.setattr("sandbox_scripts.remediate.Embedder", env["MockEmbedder"])
+    eval_set_path = env["indexes_dir"].parent / "eval" / "eval_set.json"
+    eval_set_path.parent.mkdir(parents=True, exist_ok=True)
+    eval_set_path.write_text(json.dumps([{"id": "q1", "question": "test question", "expected_answer": "test", "source_doc": "doc.md"}]), encoding="utf-8")
+
+    # Mock judge evaluate_index
+    def mock_eval_index(index_dir, eval_set_path, threshold=3.5, output_path=None, top_k=None, **kwargs):
+        report = {
+            "summary": {
+                "index_version": Path(index_dir).name,
+                "avg_overall_score": 4.65,
+                "overall_score": 5,
+                "is_degraded": False,
+            },
+            "results": [{"id": "q1", "overall_score": 5, "passed": True}],
+            "failing_queries": [],
+        }
+        if output_path:
+            Path(output_path).write_text(json.dumps(report), encoding="utf-8")
+        return report
+
+    monkeypatch.setattr("eval.compare.evaluate_index", mock_eval_index)
+
+    create_raw = create_experiment(strategy="chunking", output_version="exp_mcp_01", chunk_size=500, overlap=100)
+    create_data = json.loads(create_raw)
+    assert create_data["candidate_score"] == 4.65
+    assert (env["indexes_dir"] / "exp_mcp_01" / "index.faiss").exists()
 
 
 def test_run_healing_cycle_with_approval_flow(mock_environment, monkeypatch):

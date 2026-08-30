@@ -190,6 +190,67 @@ def compare_experiments(candidate_version: str, current_version: str = "", basel
 
 
 @mcp.tool()
+def create_experiment(
+    strategy: str,
+    output_version: str = "",
+    chunk_size: int = 0,
+    overlap: int = 0,
+    top_k: int = 0,
+    source_index: str = "",
+) -> str:
+    """
+    Execute sandbox remediation to create an isolated candidate index, evaluate it against
+    the evaluation dataset, and return the structured comparison against current degraded and baseline.
+    Supported strategies: 'chunking', 'retrieval'.
+    Never modifies the active index.
+    """
+    from sandbox_scripts.remediate import execute_remediation
+    from eval.compare import evaluate_and_compare_candidate
+
+    strat = strategy.strip().lower()
+    if strat not in ("chunking", "retrieval"):
+        return f"Error: Invalid strategy '{strategy}'. Supported strategies: ['chunking', 'retrieval']"
+
+    active_ver = get_active_version()
+    src_ver = source_index.strip() if source_index.strip() else active_ver
+    out_ver = output_version.strip() if output_version.strip() else None
+
+    kwargs: dict = {
+        "strategy": strat,
+        "source_index": src_ver,
+        "output_version": out_ver,
+        "corpus_source_dir": PROJECT_ROOT / "corpus" / "active",
+        "corpus_working_dir": PROJECT_ROOT / "corpus" / "candidate",
+        "indexes_root_dir": PROJECT_ROOT / "indexes",
+    }
+    if chunk_size > 0:
+        kwargs["chunk_size"] = chunk_size
+    if overlap > 0:
+        kwargs["overlap"] = overlap
+    if top_k > 0:
+        kwargs["top_k"] = top_k
+
+    try:
+        remed_res = execute_remediation(**kwargs)
+        cand_version = remed_res["candidate_version"]
+        cand_dir = Path(remed_res["candidate_index_dir"])
+
+        cand_eval_output = PROJECT_ROOT / "eval" / f"{cand_version}_results.json"
+        comparison = evaluate_and_compare_candidate(
+            candidate_index_dir=cand_dir,
+            current_index_version=src_ver,
+            baseline_index_version=get_baseline_version(),
+            eval_set_path=PROJECT_ROOT / "eval" / "eval_set.json",
+            output_report_path=cand_eval_output,
+            top_k=top_k if top_k > 0 else None,
+        )
+        comparison["remediation_result"] = remed_res
+        return json.dumps(comparison, indent=2)
+    except Exception as e:
+        return f"Error creating candidate experiment: {e}"
+
+
+@mcp.tool()
 def get_pipeline_config(index_version: str = "") -> str:
     """
     Get the pipeline configuration (chunk size, overlap, embedding model, etc.)
