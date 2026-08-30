@@ -209,6 +209,66 @@ def get_pipeline_config(index_version: str = "") -> str:
     except Exception as e:
         return f"Error reading config: {e}"
 
+
+@mcp.tool()
+def promote_experiment(candidate_version: str, metadata: str = "") -> str:
+    """
+    Promote a candidate experiment index to active status after explicit human approval.
+    Updates indexes/active.json, preserves previous active version,
+    and records promotion metadata. Never promote automatically.
+    """
+    from agent.orchestrator import promote_candidate
+
+    cand_ver = candidate_version.strip()
+    if not cand_ver:
+        return "Error: candidate_version cannot be empty."
+
+    meta_dict = None
+    if metadata:
+        try:
+            meta_dict = json.loads(metadata)
+        except Exception:
+            meta_dict = {"raw_metadata": metadata}
+
+    try:
+        res = promote_candidate(cand_ver, indexes_dir=PROJECT_ROOT / "indexes", metadata=meta_dict)
+        return json.dumps(res, indent=2)
+    except Exception as e:
+        return f"Error promoting candidate '{cand_ver}': {e}"
+
+
+@mcp.tool()
+def rollback_experiment(target_version: str = "") -> str:
+    """
+    Roll back the active index to the previous active version or a specified target version.
+    Preserves version history and logs rollback metadata.
+    """
+    from agent.orchestrator import rollback_candidate
+
+    try:
+        res = rollback_candidate(target_version=target_version.strip() or None, indexes_dir=PROJECT_ROOT / "indexes")
+        return json.dumps(res, indent=2)
+    except Exception as e:
+        return f"Error rolling back index: {e}"
+
+
+@mcp.tool()
+def discard_experiment(candidate_version: str, reason: str = "") -> str:
+    """
+    Discard a rejected candidate experiment index without modifying active index.
+    """
+    from agent.orchestrator import discard_candidate
+
+    cand_ver = candidate_version.strip()
+    if not cand_ver:
+        return "Error: candidate_version cannot be empty."
+
+    try:
+        res = discard_candidate(cand_ver, indexes_dir=PROJECT_ROOT / "indexes", reason=reason.strip() or None)
+        return json.dumps(res, indent=2)
+    except Exception as e:
+        return f"Error discarding candidate '{cand_ver}': {e}"
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="RAG Doctor MCP Server")
     parser.add_argument(

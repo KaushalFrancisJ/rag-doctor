@@ -46,6 +46,239 @@ from mcp_server import get_active_version, get_baseline_version, inspect_rag_hea
 from sandbox_scripts.remediate import execute_remediation
 
 
+def format_approval_presentation(
+    comparison: Dict[str, Any],
+    workflow_details: Optional[Dict[str, Any]] = None,
+) -> str:
+    """Format structured diagnosis, experiment, score delta, and regressions for human approval."""
+    details = workflow_details or comparison.get("workflow_details", {})
+    diagnosis = details.get("diagnosis", {})
+    experiment = details.get("experiment", {})
+    cand_version = details.get("candidate_version", "candidate")
+
+    cause = diagnosis.get("suspected_cause", "Unknown root cause").capitalize()
+    evidence = diagnosis.get("evidence", "")
+    strategy = experiment.get("strategy", "")
+    changes = experiment.get("changes", {})
+
+    if strategy == "chunking":
+        exp_desc = f"{changes.get('chunk_size', 'N/A')} chars / {changes.get('overlap', 'N/A')} overlap"
+    elif strategy == "retrieval":
+        exp_desc = f"top_k = {changes.get('top_k', 'N/A')} chunks"
+    else:
+        exp_desc = json.dumps(changes)
+
+    curr_score = comparison.get("current_score", 0.0)
+    cand_score = comparison.get("candidate_score", 0.0)
+    regressions = comparison.get("regressions", [])
+
+    if not regressions:
+        reg_text = "No regressions detected"
+    else:
+        reg_text = f"Regressions detected in {len(regressions)} queries: {', '.join(regressions)}"
+
+    evidence_text = f"\nEvidence:\n{evidence}" if evidence else ""
+
+    return (
+        f"RAG Doctor found a candidate fix.\n\n"
+        f"Diagnosis:\n{cause}{evidence_text}\n\n"
+        f"Experiment:\n{exp_desc}\n\n"
+        f"Score:\n{curr_score:.2f} → {cand_score:.2f}\n\n"
+        f"Regression checks:\n{reg_text}\n\n"
+        f"Promote {cand_version} to active?"
+    )
+
+
+def promote_candidate(
+    candidate_version: str,
+    indexes_dir: str | Path = "indexes",
+    metadata: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Promote candidate index to active status after explicit human approval.
+
+    - Updates indexes/active.json with new active_version, preserving previous_active_version.
+    - Appends promotion record to history.
+    - Preserves previous active index directory on disk (never deletes previous versions).
+    - Records promotion metadata in indexes/<candidate_version>/promotion_metadata.json.
+    """
+    indexes_path = Path(indexes_dir)
+    cand_dir = indexes_path / candidate_version
+    if not cand_dir.exists():
+        raise FileNotFoundError(f"Candidate index directory '{cand_dir}' does not exist.")
+
+    active_file = indexes_path / "active.json"
+    active_data: Dict[str, Any] = {}
+    if active_file.exists():
+        try:
+            with open(active_file, "r", encoding="utf-8") as f:
+                active_data = json.load(f)
+        except Exception:
+            active_data = {}
+
+    prev_active = active_data.get("active_version", "v001")
+    baseline_ver = active_data.get("baseline_version", "v001")
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    history = active_data.get("history", [])
+    history.append({
+        "active_version": candidate_version,
+        "previous_active_version": prev_active,
+        "baseline_version": baseline_ver,
+        "promoted_at": now_iso,
+    })
+
+    new_active_data = {
+        "active_version": candidate_version,
+        "previous_active_version": prev_active,
+        "baseline_version": baseline_ver,
+        "last_promoted_at": now_iso,
+        "history": history,
+    }
+
+    with open(active_file, "w", encoding="utf-8") as f:
+        json.dump(new_active_data, f, indent=2)
+
+    # Write promotion metadata in candidate directory
+    promo_meta_file = cand_dir / "promotion_metadata.json"
+    promotion_record = {
+        "status": "PROMOTED",
+        "candidate_version": candidate_version,
+        "previous_active_version": prev_active,
+        "baseline_version": baseline_ver,
+        "promoted_at": now_iso,
+        "metadata": metadata or {},
+    }
+    with open(promo_meta_file, "w", encoding="utf-8") as f:
+        json.dump(promotion_record, f, indent=2)
+
+    return promotion_record
+
+
+def discard_candidate(
+    candidate_version: str,
+    indexes_dir: str | Path = "indexes",
+    reason: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Discard a candidate index when human rejects promotion.
+
+    Leaves active index untouched and records discard metadata.
+    """
+    indexes_path = Path(indexes_dir)
+    active_file = indexes_path / "active.json"
+    active_ver = "v001"
+    if active_file.exists():
+        try:
+            with open(active_file, "r", encoding="utf-8") as f:
+                active_ver = json.load(f).get("active_version", "v001")
+        except Exception:
+            pass
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    cand_dir = indexes_path / candidate_version
+
+    discard_record = {
+        "status": "DISCARDED",
+        "candidate_version": candidate_version,
+        "active_version": active_ver,
+        "active_untouched": True,
+        "discarded_at": now_iso,
+        "reason": reason or "Rejected by human operator",
+    }
+
+    if cand_dir.exists():
+        discard_file = cand_dir / "discard_metadata.json"
+        try:
+            with open(discard_file, "w", encoding="utf-8") as f:
+                json.dump(discard_record, f, indent=2)
+        except Exception:
+            pass
+
+    return discard_record
+
+
+def rollback_candidate(
+    target_version: Optional[str] = None,
+    indexes_dir: str | Path = "indexes",
+) -> Dict[str, Any]:
+    """Roll back active index to previous active version or specified target version."""
+    indexes_path = Path(indexes_dir)
+    active_file = indexes_path / "active.json"
+    active_data: Dict[str, Any] = {}
+    if active_file.exists():
+        try:
+            with open(active_file, "r", encoding="utf-8") as f:
+                active_data = json.load(f)
+        except Exception:
+            active_data = {}
+
+    current_active = active_data.get("active_version", "v001")
+    target = target_version or active_data.get("previous_active_version") or active_data.get("baseline_version", "v001")
+
+    target_dir = indexes_path / target
+    if not target_dir.exists():
+        raise FileNotFoundError(f"Target rollback index version '{target}' not found at '{target_dir}'.")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    history = active_data.get("history", [])
+    history.append({
+        "action": "ROLLBACK",
+        "from_version": current_active,
+        "to_version": target,
+        "rolled_back_at": now_iso,
+    })
+
+    new_active_data = {
+        "active_version": target,
+        "previous_active_version": current_active,
+        "baseline_version": active_data.get("baseline_version", "v001"),
+        "last_rolled_back_at": now_iso,
+        "history": history,
+    }
+
+    with open(active_file, "w", encoding="utf-8") as f:
+        json.dump(new_active_data, f, indent=2)
+
+    return {
+        "status": "ROLLED_BACK",
+        "active_version": target,
+        "previous_active_version": current_active,
+        "rolled_back_at": now_iso,
+    }
+
+
+def request_human_approval(
+    summary_text: str,
+    candidate_version: str,
+    approval_callback: Optional[Any] = None,
+    simulated_response: Optional[bool] = None,
+) -> bool:
+    """Pause workflow for explicit human approval.
+
+    - Never automatically promotes.
+    - Uses approval_callback if provided.
+    - Uses simulated_response if provided.
+    - If interactive terminal, prompts the human operator.
+    - Defaults to False (safe, never auto-promotes).
+    """
+    if simulated_response is not None:
+        return bool(simulated_response)
+
+    if approval_callback is not None:
+        return bool(approval_callback(summary_text))
+
+    if sys.stdin.isatty():
+        print("\n" + "=" * 50)
+        print(summary_text)
+        print("=" * 50)
+        try:
+            resp = input(f"\nApprove promotion of '{candidate_version}' to active? [y/N]: ").strip().lower()
+            return resp in ("y", "yes", "approve")
+        except (EOFError, KeyboardInterrupt):
+            return False
+
+    return False
+
+
 def run_healing_cycle(
     index_version: Optional[str] = None,
     candidate_version: Optional[str] = None,
@@ -58,8 +291,11 @@ def run_healing_cycle(
     indexes_dir: str | Path = "indexes",
     corpus_dir: str | Path = "corpus/active",
     candidate_corpus_dir: str | Path = "corpus/candidate",
+    require_human_approval: bool = False,
+    approval_response: Optional[bool] = None,
+    approval_callback: Optional[Any] = None,
 ) -> Dict[str, Any]:
-    """Run end-to-end self-healing pipeline from degradation detection to candidate comparison.
+    """Run end-to-end self-healing pipeline from degradation detection to candidate comparison and approval.
 
     Workflow:
     1. Health check on degraded index.
@@ -68,38 +304,33 @@ def run_healing_cycle(
     4. Sandbox executes deterministic remediation to build isolated candidate index.
     5. Evaluation harness scores the candidate index.
     6. Produces structured comparison against degraded current and baseline.
+    7. Pauses for human approval checkpoint if require_human_approval=True.
+    8. Promotes candidate if approved, or discards candidate if rejected.
 
     Args:
         index_version: Target degraded index version (defaults to active index).
         candidate_version: Optional unique candidate version name.
-        diagnosis_override: Optional pre-computed diagnosis dictionary (e.g. for offline testing).
+        diagnosis_override: Optional pre-computed diagnosis dictionary.
         experiment_override: Optional pre-computed fix experiment dictionary.
-        judge: Optional Judge instance (useful for mocking LLM in tests).
+        judge: Optional Judge instance (useful for mocking in tests).
         api_key: Optional Groq API key for diagnosis and fix.
         model_name: Optional Groq model name for agents.
         eval_set_path: Path to evaluation dataset.
         indexes_dir: Root directory of vector indexes.
         corpus_dir: Source corpus directory.
         candidate_corpus_dir: Working candidate corpus directory.
+        require_human_approval: Whether to trigger human approval gate.
+        approval_response: Optional simulated approval response (True=Approve, False=Reject).
+        approval_callback: Optional approval callback function.
 
     Returns:
-        Structured comparison dictionary:
-        {
-            "baseline_score": float,
-            "current_score": float,
-            "candidate_score": float,
-            "delta_vs_current": float,
-            "delta_vs_baseline": float,
-            "candidate_better": bool,
-            "regressions": List[str],
-            "workflow_details": Dict[str, Any]
-        }
+        Structured comparison dictionary with workflow details and approval result.
     """
     indexes_path = Path(indexes_dir)
     active_ver = index_version or get_active_version()
     baseline_ver = get_baseline_version()
 
-    # Capture initial active.json content to guarantee immutability
+    # Capture initial active.json content to verify candidate isolation
     active_json_file = indexes_path / "active.json"
     initial_active_state = active_json_file.read_text(encoding="utf-8") if active_json_file.exists() else "{}"
 
@@ -165,16 +396,16 @@ def run_healing_cycle(
         judge=judge,
     )
 
-    # 6. Verify Active Index Immutability (Candidate is NEVER automatically promoted)
-    post_active_state = active_json_file.read_text(encoding="utf-8") if active_json_file.exists() else "{}"
-    if post_active_state != initial_active_state:
+    # Verify Active Index was NOT modified prior to approval
+    pre_approval_active_state = active_json_file.read_text(encoding="utf-8") if active_json_file.exists() else "{}"
+    if pre_approval_active_state != initial_active_state:
         raise RuntimeError(
-            f"Active index violation: active.json was modified during candidate workflow! "
-            f"Expected '{initial_active_state}', got '{post_active_state}'."
+            f"Active index violation: active.json was modified prior to human approval! "
+            f"Expected '{initial_active_state}', got '{pre_approval_active_state}'."
         )
 
-    # Attach workflow metadata for visibility
-    comparison["workflow_details"] = {
+    # Attach workflow metadata
+    workflow_details = {
         "active_version": active_ver,
         "baseline_version": baseline_ver,
         "candidate_version": cand_tag,
@@ -184,6 +415,31 @@ def run_healing_cycle(
         "remediation": remediation_res,
         "evaluation_file": str(cand_eval_output),
     }
+    comparison["workflow_details"] = workflow_details
+
+    # Format Human Approval Presentation
+    presentation_text = format_approval_presentation(comparison, workflow_details)
+    comparison["approval_summary"] = presentation_text
+
+    # 6. Human Approval Checkpoint
+    if require_human_approval:
+        is_approved = request_human_approval(
+            summary_text=presentation_text,
+            candidate_version=cand_tag,
+            approval_callback=approval_callback,
+            simulated_response=approval_response,
+        )
+
+        if is_approved:
+            promo_res = promote_candidate(cand_tag, indexes_dir=indexes_path, metadata=comparison)
+            comparison["approval_status"] = "APPROVED"
+            comparison["promotion_result"] = promo_res
+        else:
+            discard_res = discard_candidate(cand_tag, indexes_dir=indexes_path)
+            comparison["approval_status"] = "REJECTED"
+            comparison["discard_result"] = discard_res
+    else:
+        comparison["approval_status"] = "PENDING_APPROVAL"
 
     return comparison
 
@@ -193,15 +449,19 @@ def main():
     parser.add_argument("--index", default=None, help="Target degraded index version (default: active index)")
     parser.add_argument("--candidate-version", default=None, help="Version tag for candidate index")
     parser.add_argument("--eval-set", default="eval/eval_set.json", help="Path to evaluation dataset")
+    parser.add_argument("--interactive", action="store_true", help="Prompt human operator interactively for approval")
     args = parser.parse_args()
 
     result = run_healing_cycle(
         index_version=args.index,
         candidate_version=args.candidate_version,
         eval_set_path=args.eval_set,
+        require_human_approval=args.interactive,
     )
 
-    print("\n=== Healing Workflow Candidate Comparison ===")
+    print("\n=== Healing Workflow Summary ===")
+    print(result.get("approval_summary", ""))
+    print("\n=== Structured Output ===")
     print(json.dumps(result, indent=2))
 
 

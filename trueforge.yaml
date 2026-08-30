@@ -88,16 +88,23 @@ agent:
        - Task input: "Formulate an isolated candidate experiment specification based on the diagnosis and configurations."
     4. Review the candidate experiment specification (`strategy`, `changes`, `hypothesis`).
     5. Execute the re-chunking/re-indexing fix inside the Daytona sandbox to build an isolated candidate index.
-    6. Re-evaluate the candidate index in the sandbox.
-    7. Construct and present the complete promotion summary containing all 7 required fields to the human user:
-       - `diagnosis`: root cause diagnosis object
-       - `proposed_remediation`: remediation experiment specification
-       - `baseline_score`: baseline overall score
-       - `candidate_score`: candidate overall score
-       - `score_delta`: numerical score improvement
-       - `regressions`: list of regressed query IDs (or explicit `[]` if none)
-       - `affected_evaluation_examples`: list of evaluation query IDs affected (or explicit `[]` if none)
-    8. Request explicit human approval before promoting the candidate index to active. Never automatically promote.
+    6. Re-evaluate the candidate index in the sandbox and compare results with `compare_experiments`.
+    7. Before requesting approval, present the structured candidate summary to the user:
+       - suspected cause
+       - evidence
+       - experiment
+       - current score
+       - candidate score
+       - score delta
+       - regressions
+       - candidate version
+    8. Pause for explicit human approval using the native TrueForge ask-user-question checkpoint:
+       - Prompt: "Promote <candidate_version> to active?"
+       - If APPROVED:
+         - Call `promote_experiment` with candidate_version to promote candidate, update `indexes/active.json`, preserve previous active version, and record promotion metadata.
+       - If REJECTED:
+         - Call `discard_experiment` with candidate_version to discard candidate and leave active untouched.
+       - Never promote automatically without human approval.
   config:
     sandbox:
       enabled: true
